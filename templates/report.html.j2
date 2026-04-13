@@ -9,117 +9,391 @@
       mermaid.initialize({ startOnLoad: true, securityLevel: "loose" });
     </script>
     <style>
-      :root { color-scheme: light; --bg:#f6f5f2; --panel:#ffffff; --ink:#171717; --muted:#686868; --line:#e7e3da; }
+      :root {
+        color-scheme: light;
+        --bg: #f3f1eb;
+        --panel: rgba(255, 255, 255, 0.94);
+        --panel-strong: #ffffff;
+        --ink: #171717;
+        --muted: #66625b;
+        --line: rgba(37, 31, 22, 0.08);
+        --shadow: 0 20px 50px rgba(45, 36, 22, 0.06);
+        --accent: #2157a6;
+      }
       * { box-sizing: border-box; }
-      body { margin:0; font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink); }
-      main { max-width: 1160px; margin: 0 auto; padding: 32px 24px 56px; }
-      .hero, .panel { background:var(--panel); border:1px solid var(--line); border-radius:18px; }
-      .hero { padding:24px; margin-bottom:16px; }
-      .grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:16px; }
-      .panel { padding:20px; }
-      h1, h2, h3, p, ul, pre { margin:0 0 12px; }
-      .meta { color:var(--muted); }
-      code { background:#f2f0ea; border-radius:6px; padding:2px 6px; }
-      pre { white-space:pre-wrap; word-break:break-word; background:#f8f7f4; border-radius:12px; padding:12px; }
-      ul { padding-left:18px; }
-      .mermaid { overflow:auto; }
-      .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
-      .chip { display:inline-flex; align-items:center; border-radius:999px; padding:4px 10px; font-size:12px; background:#f3f0ea; color:#524d45; }
-      .legend { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
-      .legend .chip { justify-content:center; }
-      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(62, 105, 180, 0.08), transparent 28%),
+          linear-gradient(180deg, #f7f5ef 0%, var(--bg) 100%);
+        color: var(--ink);
+      }
+      main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 72px; }
+      .hero, .panel, .meta-card, .nav-shell, .viewer-shell {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+      .hero {
+        border-radius: 24px;
+        padding: 28px;
+        margin-bottom: 16px;
+      }
+      .hero-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .eyebrow, .section-kicker {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h1 { margin: 0 0 10px; font-size: 34px; line-height: 1.15; }
+      h2 { margin: 0 0 10px; font-size: 22px; line-height: 1.2; }
+      h3 { margin: 0 0 8px; font-size: 17px; }
+      p { margin: 0 0 10px; }
+      .summary { max-width: 780px; font-size: 16px; color: #2b2620; }
+      .pill-row, .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .pill, .legend span, .nav-link {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        line-height: 1;
+      }
+      .pill {
+        background: #f0ede6;
+        color: #4d473f;
+      }
+      .nav-shell {
+        position: sticky;
+        top: 14px;
+        z-index: 5;
+        border-radius: 18px;
+        margin-bottom: 18px;
+      }
+      .nav {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 12px;
+      }
+      .nav-link {
+        color: #433d36;
+        background: rgba(255, 255, 255, 0.72);
+        text-decoration: none;
+        border: 1px solid rgba(37, 31, 22, 0.06);
+        white-space: nowrap;
+      }
+      .layout {
+        display: grid;
+        gap: 18px;
+      }
+      .panel {
+        border-radius: 24px;
+        padding: 24px;
+      }
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+      .viewer-trigger {
+        border: 0;
+        border-radius: 999px;
+        background: #1f1f1f;
+        color: #fff;
+        padding: 10px 14px;
+        font: inherit;
+        cursor: pointer;
+      }
+      .workflow-panel .mermaid,
+      .viewer-body .mermaid {
+        min-height: 280px;
+        overflow: auto;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fbfaf7 0%, #f5f2ea 100%);
+        border: 1px solid rgba(37, 31, 22, 0.06);
+        padding: 18px;
+      }
+      .translation-panel {
+        display: grid;
+        gap: 16px;
+      }
+      .translation-block {
+        border-top: 1px solid rgba(37, 31, 22, 0.08);
+        padding-top: 16px;
+      }
+      .translation-block:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .translation-text {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #2a241d;
+      }
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .meta-card {
+        border-radius: 20px;
+        padding: 18px;
+      }
+      .meta-list, .inline-list {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .meta-list li, .inline-list li {
+        margin-bottom: 8px;
+        word-break: break-word;
+      }
+      code, pre {
+        font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #f8f6f1;
+        border-radius: 14px;
+        padding: 14px;
+        border: 1px solid rgba(37, 31, 22, 0.05);
+      }
+      .viewer-shell {
+        position: fixed;
+        inset: 0;
+        display: none;
+        background: rgba(24, 20, 16, 0.64);
+        z-index: 30;
+        padding: 24px;
+      }
+      .viewer-shell.is-open { display: block; }
+      .viewer {
+        max-width: 1280px;
+        height: calc(100vh - 48px);
+        margin: 0 auto;
+        border-radius: 28px;
+        background: rgba(250, 248, 242, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.24);
+        display: flex;
+        flex-direction: column;
+      }
+      .viewer-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(37, 31, 22, 0.08);
+      }
+      .viewer-close {
+        border: 0;
+        background: #1f1f1f;
+        color: #fff;
+        border-radius: 999px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font: inherit;
+      }
+      .viewer-body {
+        padding: 20px;
+        overflow: auto;
+      }
+      .muted { color: var(--muted); }
+      .source-card { grid-column: 1 / -1; }
+      @media (max-width: 900px) {
+        main { padding: 20px 16px 56px; }
+        .hero, .panel { padding: 20px; }
+        .meta-grid { grid-template-columns: 1fr; }
+        h1 { font-size: 28px; }
+      }
     </style>
   </head>
   <body>
     <main>
       <section class="hero">
-        <p class="meta">Skill Inspector</p>
-        <h1>{{ analysis.summary.title }}</h1>
-        <p>{{ analysis.summary.purpose }}</p>
-        <p class="meta">总分 <strong>{{ analysis.score.total }}</strong> / 100 · 风险 <strong>{{ analysis.safety.level }}</strong></p>
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow">Skill Inspector</p>
+            <h1>{{ analysis.summary.title }}</h1>
+            <p class="summary">{{ analysis.summary.purpose }}</p>
+          </div>
+          <div class="pill-row">
+            <span class="pill">总分 {{ analysis.score.total }}/100</span>
+            <span class="pill">风险 {{ analysis.safety.level }}</span>
+            <span class="pill">引用 {{ analysis.structure.reference_count }}</span>
+          </div>
+        </div>
       </section>
 
-      <section class="grid">
-        <article class="panel">
-          <h2>执行逻辑</h2>
+      <div class="nav-shell">
+        <nav class="nav" aria-label="Report sections">
+          {% for item in nav_items %}
+          <a class="nav-link" href="#{{ item.id }}">{{ item.label }}</a>
+          {% endfor %}
+        </nav>
+      </div>
+
+      <div class="layout">
+        <section class="panel workflow-panel" id="workflow">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Primary View</p>
+              <h2>执行逻辑流程图</h2>
+              <p class="muted">流程图优先展示执行路径、分支条件与引用触发时机。</p>
+            </div>
+            <button class="viewer-trigger" type="button" data-open-viewer="mermaid-viewer">全屏查看</button>
+          </div>
           <div class="legend">
-            <span class="chip">输入</span>
-            <span class="chip">解析</span>
-            <span class="chip">决策</span>
-            <span class="chip">引用</span>
-            <span class="chip">风险</span>
-            <span class="chip">输出</span>
+            <span class="pill">输入</span>
+            <span class="pill">解析</span>
+            <span class="pill">决策</span>
+            <span class="pill">引用</span>
+            <span class="pill">风险</span>
+            <span class="pill">输出</span>
           </div>
-          <div class="mermaid">{{ mermaid_source }}</div>
-        </article>
+          <div class="mermaid">{{ mermaid_source | safe }}</div>
+        </section>
 
-        <article class="panel">
-          <h2>结构总览</h2>
-          <div class="chips">
-            <span class="chip">Sections {{ analysis.structure.sections|length }}</span>
-            <span class="chip">References {{ analysis.structure.reference_count }}</span>
-            <span class="chip">Commands {{ analysis.structure.commands|length }}</span>
+        <section class="panel translation-panel" id="translation">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Secondary View</p>
+              <h2>中文翻译</h2>
+              <p class="muted">按内容段落展开，降低整页扫描成本。</p>
+            </div>
           </div>
-          <pre>{{ analysis.structure.metadata }}</pre>
-          <ul>
-            {% for section in analysis.structure.sections %}
-            <li>{{ section }}</li>
-            {% endfor %}
-          </ul>
-        </article>
+          {% for section in translation_sections %}
+          <article class="translation-block" id="{{ section.id }}">
+            <h3>{{ section.title }}</h3>
+            <div class="translation-text">{{ section.body }}</div>
+          </article>
+          {% endfor %}
+        </section>
 
-        <article class="panel">
-          <h2>引用关系</h2>
-          <ul>
-            {% for reference in analysis.references %}
-            <li>
-              <strong>{{ reference.target }}</strong>
-              · 类型 {{ reference.kind }}
-              · 条件 {{ reference.condition or "reference available" }}
-            </li>
-            {% endfor %}
-          </ul>
-        </article>
+        <div class="meta-grid">
+          <section class="meta-card" id="references">
+            <p class="section-kicker">Meta</p>
+            <h2>引用关系</h2>
+            <ul class="meta-list">
+              {% for reference in analysis.references %}
+              <li>
+                <strong>{{ reference.target }}</strong><br>
+                <span class="muted">类型 {{ reference.kind }} · 条件 {{ reference.condition or "reference available" }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </section>
 
-        <article class="panel">
-          <h2>中文翻译</h2>
-          <pre>{{ analysis.translation.body_zh }}</pre>
-        </article>
+          <section class="meta-card" id="safety">
+            <p class="section-kicker">Meta</p>
+            <h2>安全评估</h2>
+            <p><strong>{{ analysis.safety.level }}</strong></p>
+            <ul class="meta-list">
+              {% for finding in analysis.safety.findings %}
+              <li>{{ finding.signal }} · {{ finding.evidence }}</li>
+              {% endfor %}
+            </ul>
+          </section>
 
-        <article class="panel">
-          <h2>来源</h2>
-          <p><code>{{ source.kind }}</code></p>
-          <pre>{{ source.meta }}</pre>
-        </article>
+          <section class="meta-card" id="install">
+            <p class="section-kicker">Meta</p>
+            <h2>安装情况</h2>
+            <ul class="meta-list">
+              {% for platform, result in analysis.install.items() %}
+              <li>{{ platform }} · {{ result.status }}</li>
+              {% endfor %}
+            </ul>
+          </section>
 
-        <article class="panel">
-          <h2>安全评估</h2>
-          <p>{{ analysis.safety.level }}</p>
-          <ul>
-            {% for finding in analysis.safety.findings %}
-            <li>{{ finding.signal }} ({{ finding.level }}) · {{ finding.evidence }}</li>
-            {% endfor %}
-          </ul>
-        </article>
+          <section class="meta-card" id="score">
+            <p class="section-kicker">Meta</p>
+            <h2>评分维度</h2>
+            <ul class="meta-list">
+              {% for key, value in analysis.score.dimensions.items() %}
+              <li>{{ key }} · {{ value }}</li>
+              {% endfor %}
+            </ul>
+          </section>
 
-        <article class="panel">
-          <h2>评分维度</h2>
-          <ul>
-            {% for key, value in analysis.score.dimensions.items() %}
-            <li>{{ key }} · {{ value }}</li>
-            {% endfor %}
-          </ul>
-        </article>
-
-        <article class="panel">
-          <h2>安装情况</h2>
-          <ul>
-            {% for platform, result in analysis.install.items() %}
-            <li>{{ platform }} · {{ result.status }} · {{ result.checked_paths | join(", ") }}</li>
-            {% endfor %}
-          </ul>
-        </article>
-      </section>
+          <section class="meta-card source-card" id="source">
+            <p class="section-kicker">Meta</p>
+            <h2>来源信息</h2>
+            <pre>{{ source.meta }}</pre>
+          </section>
+        </div>
+      </div>
     </main>
+
+    <div class="viewer-shell" id="mermaid-viewer" aria-hidden="true">
+      <div class="viewer">
+        <div class="viewer-head">
+          <div>
+            <p class="section-kicker">Fullscreen</p>
+            <h2>执行逻辑流程图</h2>
+          </div>
+          <button class="viewer-close" type="button" data-close-viewer="mermaid-viewer">关闭</button>
+        </div>
+        <div class="viewer-body">
+          <div class="mermaid">{{ mermaid_source | safe }}</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const openButtons = document.querySelectorAll("[data-open-viewer]");
+        const closeButtons = document.querySelectorAll("[data-close-viewer]");
+        const closeViewer = (viewer) => {
+          viewer.classList.remove("is-open");
+          viewer.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
+        };
+        const openViewer = (viewer) => {
+          viewer.classList.add("is-open");
+          viewer.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+        };
+        openButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const viewer = document.getElementById(button.dataset.openViewer);
+            if (viewer) openViewer(viewer);
+          });
+        });
+        closeButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const viewer = document.getElementById(button.dataset.closeViewer);
+            if (viewer) closeViewer(viewer);
+          });
+        });
+        document.querySelectorAll(".viewer-shell").forEach((viewer) => {
+          viewer.addEventListener("click", (event) => {
+            if (event.target === viewer) closeViewer(viewer);
+          });
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            document.querySelectorAll(".viewer-shell.is-open").forEach((viewer) => closeViewer(viewer));
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
