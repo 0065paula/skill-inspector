@@ -87,6 +87,24 @@ def _translation_sections(text: str) -> list[dict[str, str]]:
     return [section for section in sections if section["body"] or section["title"]]
 
 
+def _source_meta_items(source_bundle: dict[str, object]) -> list[dict[str, str]]:
+    meta = source_bundle.get("meta", {})
+    items: list[dict[str, str]] = [{"label": "输入类型", "value": str(source_bundle.get("kind", "unknown"))}]
+    label_map = {
+        "source": "来源",
+        "path": "本地路径",
+        "url": "原始链接",
+        "request_url": "请求链接",
+        "resolved_url": "解析后链接",
+        "content_type": "内容类型",
+        "status_code": "HTTP 状态",
+    }
+    for key in ["source", "path", "url", "request_url", "resolved_url", "content_type", "status_code"]:
+        if key in meta and meta[key] is not None:
+            items.append({"label": label_map[key], "value": str(meta[key])})
+    return items
+
+
 def _nav_items(analysis: dict[str, object]) -> list[dict[str, str]]:
     items = [
         {"id": "workflow", "label": "流程图"},
@@ -142,8 +160,10 @@ def render_report(*, output_dir: Path, source_bundle: dict[str, object], analysi
             analysis=analysis,
             source=source_bundle,
             mermaid_source=_mermaid_source(analysis["workflow"]),
+            mermaid_source_json=json.dumps(_mermaid_source(analysis["workflow"]), ensure_ascii=False),
             translation_sections=translation_sections,
             nav_items=nav_items,
+            source_meta_items=_source_meta_items(source_bundle),
         ),
         encoding="utf-8",
     )

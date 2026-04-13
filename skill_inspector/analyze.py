@@ -1,5 +1,7 @@
 import re
+from functools import lru_cache
 
+import requests
 from .install_probe import probe_installation
 from .models import NormalizedDocument
 
@@ -29,6 +31,74 @@ def _translate_text(text: str) -> str:
     for source, target in TERM_MAP.items():
         translated = translated.replace(source, target)
     return translated
+
+
+def _contains_cjk(text: str) -> bool:
+    return bool(re.search(r"[\u4e00-\u9fff]", text))
+
+
+@lru_cache(maxsize=512)
+def _translate_via_google(text: str) -> str:
+    try:
+        response = requests.get(
+            "https://translate.googleapis.com/translate_a/single",
+            params={
+                "client": "gtx",
+                "sl": "auto",
+                "tl": "zh-CN",
+                "dt": "t",
+                "q": text,
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        parts = payload[0] if payload and payload[0] else []
+        translated = "".join(part[0] for part in parts if part and part[0])
+        return translated or text
+    except Exception:
+        return text
+
+
+def _translate_markdown_line(line: str) -> str:
+    if not line.strip():
+        return line
+    if line.strip() in {"---", "```", "```bash", "```sh", "```shell", "```zsh"}:
+        return line
+    if _contains_cjk(line):
+        return _translate_text(line)
+    if re.fullmatch(r"[`#>*\-\d.\s]+", line):
+        return line
+
+    patterns = [
+        r"^(#{1,6}\s+)(.+)$",
+        r"^(\s*[-*]\s+)(.+)$",
+        r"^(\s*\d+\.\s+)(.+)$",
+        r"^(\s*>\s+)(.+)$",
+    ]
+    for pattern in patterns:
+        match = re.match(pattern, line)
+        if match:
+            prefix, content = match.groups()
+            return prefix + _translate_via_google(content)
+    return _translate_via_google(line)
+
+
+def _translate_markdown(text: str) -> str:
+    lines = text.splitlines()
+    translated_lines: list[str] = []
+    inside_code_fence = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            inside_code_fence = not inside_code_fence
+            translated_lines.append(line)
+            continue
+        if inside_code_fence:
+            translated_lines.append(line)
+            continue
+        translated_lines.append(_translate_markdown_line(line))
+    return "\n".join(translated_lines)
 
 
 def _has_clear_trigger(document: NormalizedDocument) -> bool:
@@ -152,7 +222,7 @@ def analyze_document(document: NormalizedDocument) -> dict[str, object]:
         },
         "translation": {
             "title_zh": _translate_text(document.title),
-            "body_zh": _translate_text(document.raw_text),
+            "body_zh": _translate_markdown(document.raw_text),
         },
         "references": [
             {

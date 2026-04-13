@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from skill_inspector.analyze import analyze_document
 from skill_inspector.normalize import normalize_document
 
@@ -67,3 +69,43 @@ def test_analyze_document_does_not_treat_design_tokens_language_as_credentials()
 
     assert analysis["safety"]["level"] == "Low"
     assert not any(finding["signal"] == "credential-handling" for finding in analysis["safety"]["findings"])
+
+
+def test_analyze_document_translates_english_markdown(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_get(url: str, params: dict[str, str], timeout: int):
+        calls.append(params["q"])
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: [[["中文：" + params["q"], params["q"], None, None]]],
+        )
+
+    monkeypatch.setattr("skill_inspector.analyze.requests.get", fake_get)
+
+    raw = """# Writing Integration Skills
+
+## Step 1
+Research the integration path
+"""
+
+    analysis = analyze_document(normalize_document(raw))
+
+    assert "中文：Research the integration path" in analysis["translation"]["body_zh"]
+    assert calls
+
+
+def test_analyze_document_falls_back_when_translation_request_fails(monkeypatch) -> None:
+    def fake_get(url: str, params: dict[str, str], timeout: int):
+        raise RuntimeError("translation service failed")
+
+    monkeypatch.setattr("skill_inspector.analyze.requests.get", fake_get)
+
+    raw = """# Writing Integration Skills
+
+Research the integration path
+"""
+
+    analysis = analyze_document(normalize_document(raw))
+
+    assert "Research the integration path" in analysis["translation"]["body_zh"]

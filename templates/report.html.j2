@@ -4,16 +4,30 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ analysis.summary.title }} - Skill Inspector</title>
+    <script id="mermaid-source" type="application/json">{{ mermaid_source_json | safe }}</script>
     <script type="module">
       import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-      mermaid.initialize({ startOnLoad: true, securityLevel: "loose" });
+
+      mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+      const sourceEl = document.getElementById("mermaid-source");
+      const source = JSON.parse(sourceEl.textContent);
+      const targets = [
+        { id: "workflow-graph", key: "workflow" },
+        { id: "viewer-graph", key: "viewer" },
+      ];
+
+      for (const target of targets) {
+        const container = document.getElementById(target.id);
+        if (!container) continue;
+        const { svg } = await mermaid.render(`skill-inspector-${target.key}`, source);
+        container.innerHTML = svg;
+      }
     </script>
     <style>
       :root {
         color-scheme: light;
         --bg: #f3f1eb;
         --panel: rgba(255, 255, 255, 0.94);
-        --panel-strong: #ffffff;
         --ink: #171717;
         --muted: #66625b;
         --line: rgba(37, 31, 22, 0.08);
@@ -59,12 +73,8 @@
       h3 { margin: 0 0 8px; font-size: 17px; }
       p { margin: 0 0 10px; }
       .summary { max-width: 780px; font-size: 16px; color: #2b2620; }
-      .pill-row, .legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .pill, .legend span, .nav-link {
+      .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .pill, .nav-link {
         display: inline-flex;
         align-items: center;
         border-radius: 999px;
@@ -111,7 +121,7 @@
         gap: 16px;
         margin-bottom: 14px;
       }
-      .viewer-trigger {
+      .viewer-trigger, .viewer-close {
         border: 0;
         border-radius: 999px;
         background: #1f1f1f;
@@ -120,8 +130,7 @@
         font: inherit;
         cursor: pointer;
       }
-      .workflow-panel .mermaid,
-      .viewer-body .mermaid {
+      .graph-shell {
         min-height: 280px;
         overflow: auto;
         border-radius: 18px;
@@ -129,6 +138,7 @@
         border: 1px solid rgba(37, 31, 22, 0.06);
         padding: 18px;
       }
+      .graph-shell svg { min-width: 820px; height: auto; }
       .translation-panel {
         display: grid;
         gap: 16px;
@@ -155,26 +165,52 @@
         border-radius: 20px;
         padding: 18px;
       }
-      .meta-list, .inline-list {
-        margin: 0;
-        padding-left: 18px;
+      .meta-stack, .status-grid, .source-list {
+        display: grid;
+        gap: 12px;
       }
-      .meta-list li, .inline-list li {
-        margin-bottom: 8px;
+      .meta-row, .status-row, .score-row, .source-item {
+        border: 1px solid rgba(37, 31, 22, 0.06);
+        background: rgba(248, 246, 241, 0.85);
+        border-radius: 16px;
+        padding: 12px 14px;
+      }
+      .meta-row strong, .source-item strong {
+        display: block;
+        margin-bottom: 4px;
         word-break: break-word;
       }
-      code, pre {
-        font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
       }
-      pre {
-        margin: 0;
-        white-space: pre-wrap;
-        word-break: break-word;
-        background: #f8f6f1;
-        border-radius: 14px;
-        padding: 14px;
-        border: 1px solid rgba(37, 31, 22, 0.05);
+      .score-row {
+        display: grid;
+        gap: 6px;
       }
+      .score-bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(33, 87, 166, 0.12);
+        overflow: hidden;
+      }
+      .score-bar span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #4177c7 0%, #2157a6 100%);
+        border-radius: 999px;
+      }
+      .source-item span {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .muted { color: var(--muted); }
+      .source-card { grid-column: 1 / -1; }
       .viewer-shell {
         position: fixed;
         inset: 0;
@@ -203,21 +239,10 @@
         padding: 18px 20px;
         border-bottom: 1px solid rgba(37, 31, 22, 0.08);
       }
-      .viewer-close {
-        border: 0;
-        background: #1f1f1f;
-        color: #fff;
-        border-radius: 999px;
-        padding: 10px 14px;
-        cursor: pointer;
-        font: inherit;
-      }
       .viewer-body {
         padding: 20px;
         overflow: auto;
       }
-      .muted { color: var(--muted); }
-      .source-card { grid-column: 1 / -1; }
       @media (max-width: 900px) {
         main { padding: 20px 16px 56px; }
         .hero, .panel { padding: 20px; }
@@ -261,15 +286,7 @@
             </div>
             <button class="viewer-trigger" type="button" data-open-viewer="mermaid-viewer">全屏查看</button>
           </div>
-          <div class="legend">
-            <span class="pill">输入</span>
-            <span class="pill">解析</span>
-            <span class="pill">决策</span>
-            <span class="pill">引用</span>
-            <span class="pill">风险</span>
-            <span class="pill">输出</span>
-          </div>
-          <div class="mermaid">{{ mermaid_source | safe }}</div>
+          <div class="graph-shell"><div id="workflow-graph"></div></div>
         </section>
 
         <section class="panel translation-panel" id="translation">
@@ -292,51 +309,69 @@
           <section class="meta-card" id="references">
             <p class="section-kicker">Meta</p>
             <h2>引用关系</h2>
-            <ul class="meta-list">
+            <div class="meta-stack">
               {% for reference in analysis.references %}
-              <li>
-                <strong>{{ reference.target }}</strong><br>
-                <span class="muted">类型 {{ reference.kind }} · 条件 {{ reference.condition or "reference available" }}</span>
-              </li>
+              <article class="meta-row">
+                <strong>{{ reference.target }}</strong>
+                <span class="muted">类型 {{ reference.kind }}</span>
+                <span class="muted">触发条件 {{ reference.condition or "reference available" }}</span>
+              </article>
               {% endfor %}
-            </ul>
+            </div>
           </section>
 
           <section class="meta-card" id="safety">
             <p class="section-kicker">Meta</p>
             <h2>安全评估</h2>
             <p><strong>{{ analysis.safety.level }}</strong></p>
-            <ul class="meta-list">
+            <div class="meta-stack">
               {% for finding in analysis.safety.findings %}
-              <li>{{ finding.signal }} · {{ finding.evidence }}</li>
+              <article class="meta-row">
+                <strong>{{ finding.signal }}</strong>
+                <span class="muted">{{ finding.level }}</span>
+                <span class="muted">{{ finding.evidence }}</span>
+              </article>
               {% endfor %}
-            </ul>
+            </div>
           </section>
 
           <section class="meta-card" id="install">
             <p class="section-kicker">Meta</p>
             <h2>安装情况</h2>
-            <ul class="meta-list">
+            <div class="status-grid">
               {% for platform, result in analysis.install.items() %}
-              <li>{{ platform }} · {{ result.status }}</li>
+              <div class="status-row">
+                <strong>{{ platform }}</strong>
+                <span class="muted">{{ result.status }}</span>
+              </div>
               {% endfor %}
-            </ul>
+            </div>
           </section>
 
           <section class="meta-card" id="score">
             <p class="section-kicker">Meta</p>
             <h2>评分维度</h2>
-            <ul class="meta-list">
+            <div class="meta-stack">
               {% for key, value in analysis.score.dimensions.items() %}
-              <li>{{ key }} · {{ value }}</li>
+              <div class="score-row">
+                <div><strong>{{ key }}</strong> <span class="muted">· {{ value }}/20</span></div>
+                <div class="score-bar"><span style="width: {{ (value / 20) * 100 }}%"></span></div>
+              </div>
               {% endfor %}
-            </ul>
+            </div>
           </section>
 
           <section class="meta-card source-card" id="source">
             <p class="section-kicker">Meta</p>
             <h2>来源信息</h2>
-            <pre>{{ source.meta }}</pre>
+            <div class="source-list">
+              {% for item in source_meta_items %}
+              <div class="source-item">
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+              </div>
+              {% endfor %}
+            </div>
           </section>
         </div>
       </div>
@@ -352,7 +387,7 @@
           <button class="viewer-close" type="button" data-close-viewer="mermaid-viewer">关闭</button>
         </div>
         <div class="viewer-body">
-          <div class="mermaid">{{ mermaid_source | safe }}</div>
+          <div class="graph-shell"><div id="viewer-graph"></div></div>
         </div>
       </div>
     </div>

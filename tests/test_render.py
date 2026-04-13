@@ -49,3 +49,9 @@ def test_render_report_writes_html_json_and_artifacts(tmp_path: Path) -> None:
     assert 'gist.github.com/octocat/123.js"></script>' not in html
     assert ".js&quot;&gt;&lt;/script&gt;" not in html
     assert 'id="mermaid-viewer"' in html
+    assert "viewer-graph" in html
+    assert "workflow-graph" in html
+    assert "图例" not in html
+    assert "输入类型" in html
+    assert "来源" in html
+    assert "{'source': 'pasted'}" not in html
