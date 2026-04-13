@@ -13,5 +13,23 @@ class SourceBundle:
         return asdict(self)
 
 
+@dataclass(slots=True)
+class Reference:
+    target: str
+    kind: str
+    line: str
+    condition: str | None
+
+
+@dataclass(slots=True)
+class NormalizedDocument:
+    title: str
+    metadata: dict[str, Any]
+    sections: list[dict[str, Any]]
+    references: list[Reference]
+    commands: list[str]
+    raw_text: str
+
+
 def read_text_file(path: Path) -> str:
     return path.read_text(encoding="utf-8")
