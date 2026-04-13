@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ analysis.summary.title }} - Skill Inspector</title>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, securityLevel: "loose" });
+    </script>
+    <style>
+      :root { color-scheme: light; --bg:#f6f5f2; --panel:#ffffff; --ink:#171717; --muted:#686868; --line:#e7e3da; }
+      * { box-sizing: border-box; }
+      body { margin:0; font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink); }
+      main { max-width: 1160px; margin: 0 auto; padding: 32px 24px 56px; }
+      .hero, .panel { background:var(--panel); border:1px solid var(--line); border-radius:18px; }
+      .hero { padding:24px; margin-bottom:16px; }
+      .grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:16px; }
+      .panel { padding:20px; }
+      h1, h2, h3, p, ul, pre { margin:0 0 12px; }
+      .meta { color:var(--muted); }
+      code { background:#f2f0ea; border-radius:6px; padding:2px 6px; }
+      pre { white-space:pre-wrap; word-break:break-word; background:#f8f7f4; border-radius:12px; padding:12px; }
+      ul { padding-left:18px; }
+      .mermaid { overflow:auto; }
+      @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <p class="meta">Skill Inspector</p>
+        <h1>{{ analysis.summary.title }}</h1>
+        <p>{{ analysis.summary.purpose }}</p>
+        <p class="meta">总分 <strong>{{ analysis.score.total }}</strong> / 100 · 风险 <strong>{{ analysis.safety.level }}</strong></p>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>执行逻辑</h2>
+          <div class="mermaid">{{ mermaid_source }}</div>
+        </article>
+
+        <article class="panel">
+          <h2>中文翻译</h2>
+          <pre>{{ analysis.translation.body_zh }}</pre>
+        </article>
+
+        <article class="panel">
+          <h2>来源</h2>
+          <p><code>{{ source.kind }}</code></p>
+          <pre>{{ source.meta }}</pre>
+        </article>
+
+        <article class="panel">
+          <h2>安全评估</h2>
+          <p>{{ analysis.safety.level }}</p>
+          <ul>
+            {% for finding in analysis.safety.findings %}
+            <li>{{ finding.signal }} ({{ finding.level }})</li>
+            {% endfor %}
+          </ul>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
