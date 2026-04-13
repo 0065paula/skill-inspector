@@ -87,6 +87,52 @@ def _translation_sections(text: str) -> list[dict[str, str]]:
     return [section for section in sections if section["body"] or section["title"]]
 
 
+def _split_blocks(text: str) -> list[str]:
+    blocks: list[str] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if not line.strip():
+            if current:
+                blocks.append("\n".join(current).strip())
+                current = []
+            continue
+        current.append(line)
+    if current:
+        blocks.append("\n".join(current).strip())
+    return blocks
+
+
+def _paired_translation_sections(original_text: str, translated_text: str) -> list[dict[str, object]]:
+    original_sections = _translation_sections(original_text)
+    translated_sections = _translation_sections(translated_text)
+    total = max(len(original_sections), len(translated_sections))
+    sections: list[dict[str, object]] = []
+
+    for index in range(total):
+        original = original_sections[index] if index < len(original_sections) else {"title": "", "body": ""}
+        translated = translated_sections[index] if index < len(translated_sections) else {"title": "", "body": ""}
+        zh_blocks = _split_blocks(translated.get("body", ""))
+        en_blocks = _split_blocks(original.get("body", ""))
+        block_total = max(len(zh_blocks), len(en_blocks), 1)
+        blocks = []
+        for block_index in range(block_total):
+            blocks.append(
+                {
+                    "zh": zh_blocks[block_index] if block_index < len(zh_blocks) else "",
+                    "en": en_blocks[block_index] if block_index < len(en_blocks) else "",
+                }
+            )
+        sections.append(
+            {
+                "id": f"translation-{index + 1}",
+                "title_zh": translated.get("title") or original.get("title") or f"段落 {index + 1}",
+                "title_en": original.get("title") or translated.get("title") or f"Section {index + 1}",
+                "blocks": blocks,
+            }
+        )
+    return sections
+
+
 def _source_meta_items(source_bundle: dict[str, object]) -> list[dict[str, str]]:
     meta = source_bundle.get("meta", {})
     items: list[dict[str, str]] = [{"label": "输入类型", "value": str(source_bundle.get("kind", "unknown"))}]
@@ -153,7 +199,7 @@ def render_report(*, output_dir: Path, source_bundle: dict[str, object], analysi
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    translation_sections = _translation_sections(analysis["translation"]["body_zh"])
+    translation_sections = _paired_translation_sections(source_bundle["text"], analysis["translation"]["body_zh"])
     nav_items = _nav_items(analysis)
     output_dir.joinpath("report.html").write_text(
         template.render(

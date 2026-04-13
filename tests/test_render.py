@@ -4,7 +4,7 @@ from skill_inspector.render import render_report
 
 
 def test_render_report_writes_html_json_and_artifacts(tmp_path: Path) -> None:
-    bundle = {"kind": "text", "text": "# Demo Skill", "meta": {"source": "pasted"}}
+    bundle = {"kind": "text", "text": "# Demo Skill\n\n## Workflow\nUse when docs are missing.", "meta": {"source": "pasted"}}
     analysis = {
         "summary": {"title": "Demo Skill", "purpose": "适用于演示"},
         "structure": {"metadata": {"name": "demo-skill"}, "sections": ["Workflow"], "commands": [], "reference_count": 1},
@@ -43,6 +43,9 @@ def test_render_report_writes_html_json_and_artifacts(tmp_path: Path) -> None:
     assert 'id="workflow"' in html
     assert "全屏查看" in html
     assert "中文翻译" in html
+    assert "translation-compare" in html
+    assert "translation-zh" in html
+    assert "translation-en" in html
     assert "引用关系" in html
     assert "安装情况" in html
     assert "Input Source" in html
@@ -55,3 +58,4 @@ def test_render_report_writes_html_json_and_artifacts(tmp_path: Path) -> None:
     assert "输入类型" in html
     assert "来源" in html
     assert "{'source': 'pasted'}" not in html
+    assert "Use when docs are missing." in html

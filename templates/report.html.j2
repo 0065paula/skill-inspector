@@ -151,10 +151,42 @@
         border-top: 0;
         padding-top: 0;
       }
-      .translation-text {
+      .translation-compare {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+        gap: 18px;
+      }
+      .translation-col {
+        min-width: 0;
+      }
+      .translation-col-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .translation-col-head span {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .translation-block-row {
+        padding: 12px 0;
+        border-top: 1px dashed rgba(37, 31, 22, 0.08);
+      }
+      .translation-block-row:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .translation-text, .translation-original {
         white-space: pre-wrap;
         word-break: break-word;
         color: #2a241d;
+      }
+      .translation-original {
+        color: #4a443c;
       }
       .meta-grid {
         display: grid;
@@ -247,6 +279,7 @@
         main { padding: 20px 16px 56px; }
         .hero, .panel { padding: 20px; }
         .meta-grid { grid-template-columns: 1fr; }
+        .translation-compare { grid-template-columns: 1fr; }
         h1 { font-size: 28px; }
       }
     </style>
@@ -299,8 +332,31 @@
           </div>
           {% for section in translation_sections %}
           <article class="translation-block" id="{{ section.id }}">
-            <h3>{{ section.title }}</h3>
-            <div class="translation-text">{{ section.body }}</div>
+            <h3>{{ section.title_zh }}</h3>
+            <div class="translation-compare">
+              <div class="translation-col translation-zh">
+                <div class="translation-col-head">
+                  <strong>中文直译</strong>
+                  <span>{{ section.title_zh }}</span>
+                </div>
+                {% for block in section.blocks %}
+                <div class="translation-block-row">
+                  <div class="translation-text">{{ block.zh }}</div>
+                </div>
+                {% endfor %}
+              </div>
+              <div class="translation-col translation-en">
+                <div class="translation-col-head">
+                  <strong>Original</strong>
+                  <span>{{ section.title_en }}</span>
+                </div>
+                {% for block in section.blocks %}
+                <div class="translation-block-row">
+                  <div class="translation-original">{{ block.en }}</div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
           </article>
           {% endfor %}
         </section>
