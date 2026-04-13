@@ -34,8 +34,9 @@ def normalize_document(raw_text: str) -> NormalizedDocument:
 
     for line in body.splitlines():
         stripped = line.strip()
-        if stripped.startswith(("Run:", "Command:", "$ ")):
-            commands.append(stripped)
+        command_line = stripped[2:].strip() if stripped.startswith("- ") else stripped
+        if command_line.startswith(("Run:", "Command:", "$ ")):
+            commands.append(command_line)
 
         condition_match = CONDITION_RE.search(stripped)
         condition = f"when{condition_match.group(1)}".strip() if condition_match else None

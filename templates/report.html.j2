@@ -23,6 +23,10 @@
       pre { white-space:pre-wrap; word-break:break-word; background:#f8f7f4; border-radius:12px; padding:12px; }
       ul { padding-left:18px; }
       .mermaid { overflow:auto; }
+      .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+      .chip { display:inline-flex; align-items:center; border-radius:999px; padding:4px 10px; font-size:12px; background:#f3f0ea; color:#524d45; }
+      .legend { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
+      .legend .chip { justify-content:center; }
       @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
     </style>
   </head>
@@ -38,7 +42,43 @@
       <section class="grid">
         <article class="panel">
           <h2>执行逻辑</h2>
+          <div class="legend">
+            <span class="chip">输入</span>
+            <span class="chip">解析</span>
+            <span class="chip">决策</span>
+            <span class="chip">引用</span>
+            <span class="chip">风险</span>
+            <span class="chip">输出</span>
+          </div>
           <div class="mermaid">{{ mermaid_source }}</div>
+        </article>
+
+        <article class="panel">
+          <h2>结构总览</h2>
+          <div class="chips">
+            <span class="chip">Sections {{ analysis.structure.sections|length }}</span>
+            <span class="chip">References {{ analysis.structure.reference_count }}</span>
+            <span class="chip">Commands {{ analysis.structure.commands|length }}</span>
+          </div>
+          <pre>{{ analysis.structure.metadata }}</pre>
+          <ul>
+            {% for section in analysis.structure.sections %}
+            <li>{{ section }}</li>
+            {% endfor %}
+          </ul>
+        </article>
+
+        <article class="panel">
+          <h2>引用关系</h2>
+          <ul>
+            {% for reference in analysis.references %}
+            <li>
+              <strong>{{ reference.target }}</strong>
+              · 类型 {{ reference.kind }}
+              · 条件 {{ reference.condition or "reference available" }}
+            </li>
+            {% endfor %}
+          </ul>
         </article>
 
         <article class="panel">
@@ -57,7 +97,25 @@
           <p>{{ analysis.safety.level }}</p>
           <ul>
             {% for finding in analysis.safety.findings %}
-            <li>{{ finding.signal }} ({{ finding.level }})</li>
+            <li>{{ finding.signal }} ({{ finding.level }}) · {{ finding.evidence }}</li>
+            {% endfor %}
+          </ul>
+        </article>
+
+        <article class="panel">
+          <h2>评分维度</h2>
+          <ul>
+            {% for key, value in analysis.score.dimensions.items() %}
+            <li>{{ key }} · {{ value }}</li>
+            {% endfor %}
+          </ul>
+        </article>
+
+        <article class="panel">
+          <h2>安装情况</h2>
+          <ul>
+            {% for platform, result in analysis.install.items() %}
+            <li>{{ platform }} · {{ result.status }} · {{ result.checked_paths | join(", ") }}</li>
             {% endfor %}
           </ul>
         </article>

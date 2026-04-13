@@ -12,6 +12,7 @@ description: Use when documenting references
 ## Workflow
 - Read `docs/reference.md` when the user asks for examples
 - Visit https://example.com if the local docs are missing
+- Run: pytest tests/test_demo.py -v
 """
 
     document = normalize_document(raw)
@@ -24,3 +25,4 @@ description: Use when documenting references
         "https://example.com",
     ]
     assert document.references[0].condition == "when the user asks for examples"
+    assert document.commands == ["Run: pytest tests/test_demo.py -v"]

@@ -31,11 +31,12 @@ def _score_document(document: NormalizedDocument) -> dict[str, object]:
 def _safety_level(document: NormalizedDocument) -> dict[str, object]:
     findings: list[dict[str, str]] = []
     if document.commands:
-        findings.append({"signal": "shell-command", "level": "Medium"})
+        findings.append({"signal": "shell-command", "level": "Medium", "evidence": document.commands[0]})
     if any(reference.kind == "url" for reference in document.references):
-        findings.append({"signal": "external-reference", "level": "Medium"})
+        first_url = next(reference.target for reference in document.references if reference.kind == "url")
+        findings.append({"signal": "external-reference", "level": "Medium", "evidence": first_url})
     if "token" in document.raw_text.lower():
-        findings.append({"signal": "credential-handling", "level": "High"})
+        findings.append({"signal": "credential-handling", "level": "High", "evidence": "token"})
 
     level = "Low"
     if any(item["level"] == "High" for item in findings):
@@ -89,12 +90,21 @@ def _workflow(document: NormalizedDocument) -> dict[str, object]:
 def analyze_document(document: NormalizedDocument) -> dict[str, object]:
     skill_name = document.metadata.get("name", "skill-inspector")
     lines = [line for line in document.raw_text.splitlines() if line.strip()]
-    purpose = lines[1] if len(lines) > 1 else document.title
+    purpose = document.metadata.get("description")
+    if not purpose:
+        use_when_line = next((line for line in lines if line.startswith("Use when")), None)
+        purpose = use_when_line or document.title
 
     return {
         "summary": {
             "title": document.title,
             "purpose": _translate_text(purpose),
+        },
+        "structure": {
+            "metadata": document.metadata,
+            "sections": [section["title"] for section in document.sections],
+            "commands": document.commands,
+            "reference_count": len(document.references),
         },
         "translation": {
             "title_zh": _translate_text(document.title),

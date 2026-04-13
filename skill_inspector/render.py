@@ -33,6 +33,14 @@ def _mermaid_source(workflow: dict[str, object]) -> str:
 
 
 def render_report(*, output_dir: Path, source_bundle: dict[str, object], analysis: dict[str, object]) -> None:
+    analysis.setdefault("structure", {"metadata": {}, "sections": [], "commands": [], "reference_count": 0})
+    analysis.setdefault("references", [])
+    analysis.setdefault("install", {})
+    analysis.setdefault("score", {"total": 0, "dimensions": {}})
+    analysis.setdefault("safety", {"level": "Unknown", "findings": []})
+    analysis.setdefault("translation", {"body_zh": ""})
+    analysis.setdefault("summary", {"title": "Untitled Skill", "purpose": ""})
+
     template_dir = Path(__file__).resolve().parents[1] / "templates"
     env = Environment(
         loader=FileSystemLoader(template_dir),
