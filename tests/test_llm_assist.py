@@ -1,7 +1,8 @@
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
-from skill_inspector.llm_assist import CommandJSONProvider, load_provider_from_env
+from skill_inspector.llm_assist import CommandJSONProvider, PrecomputedJSONProvider, load_provider_from_env
 
 
 def test_load_provider_from_env_returns_none_when_unset(monkeypatch) -> None:
@@ -29,3 +30,32 @@ def test_command_json_provider_invokes_command(monkeypatch) -> None:
     assert recorded["command"] == ["python", "fake_provider.py"]
     assert recorded["payload"]["task"] == "translate_blocks"
     assert result == {"line-1": "中文"}
+
+
+def test_precomputed_json_provider_reads_saved_results(tmp_path: Path) -> None:
+    response_file = tmp_path / "llm_response.json"
+    response_file.write_text(
+        json.dumps(
+            {
+                "translations": {"line-1": "中文译文"},
+                "suggestions": [{"title": "建议", "detail": "细化引用说明。", "priority": "high"}],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    provider = PrecomputedJSONProvider(response_file)
+
+    assert provider.translate_blocks(title="Demo", blocks=[{"id": "line-1", "section": "body", "text": "hello"}]) == {
+        "line-1": "中文译文"
+    }
+    assert provider.generate_insights(
+        title="Demo",
+        summary="summary",
+        sections=[],
+        references=[],
+        commands=[],
+        score={},
+        safety={},
+    )["suggestions"][0]["title"] == "建议"

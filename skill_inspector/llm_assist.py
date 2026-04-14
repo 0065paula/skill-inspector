@@ -101,6 +101,31 @@ class CommandJSONProvider:
         return self._run(payload)
 
 
+class PrecomputedJSONProvider:
+    def __init__(self, response_file: str | os.PathLike[str]) -> None:
+        self.response_file = response_file
+
+    def _load(self) -> dict[str, Any]:
+        return json.loads(open(self.response_file, encoding="utf-8").read())
+
+    def translate_blocks(self, *, title: str, blocks: list[dict[str, str]]) -> dict[str, str]:
+        data = self._load()
+        return data.get("translations", {})
+
+    def generate_insights(
+        self,
+        *,
+        title: str,
+        summary: str,
+        sections: list[str],
+        references: list[dict[str, str]],
+        commands: list[str],
+        score: dict[str, object],
+        safety: dict[str, object],
+    ) -> dict[str, Any]:
+        return self._load()
+
+
 def load_provider_from_env() -> LLMProvider | None:
     command = os.environ.get("SKILL_INSPECTOR_LLM_COMMAND")
     if not command:

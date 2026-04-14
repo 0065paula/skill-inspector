@@ -164,9 +164,8 @@ def _translate_markdown(text: str, *, title_hint: str | None = None) -> str:
     return _polish_technical_chinese("\n".join(translated_lines))
 
 
-def _translate_markdown_with_provider(text: str, *, title_hint: str | None, provider: LLMProvider) -> str:
+def _build_translation_job(text: str, *, title_hint: str | None = None) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     lines = text.splitlines()
-    translated_lines: list[str] = []
     blocks: list[dict[str, str]] = []
     descriptors: list[dict[str, str]] = []
     inside_code_fence = False
@@ -245,7 +244,15 @@ def _translate_markdown_with_provider(text: str, *, title_hint: str | None, prov
         blocks.append({"id": block_id, "section": "paragraph", "text": line})
         descriptors.append({"mode": "block", "id": block_id})
 
-    translated_map = provider.translate_blocks(title=title_hint or "Skill Document", blocks=blocks) if blocks else {}
+    return blocks, descriptors
+
+
+def _compose_translated_markdown(
+    *,
+    descriptors: list[dict[str, str]],
+    translated_map: dict[str, str],
+) -> str:
+    translated_lines: list[str] = []
 
     for descriptor in descriptors:
         mode = descriptor["mode"]
@@ -259,6 +266,12 @@ def _translate_markdown_with_provider(text: str, *, title_hint: str | None, prov
             translated_lines.append(translated_map.get(descriptor["id"], ""))
 
     return _polish_technical_chinese("\n".join(translated_lines))
+
+
+def _translate_markdown_with_provider(text: str, *, title_hint: str | None, provider: LLMProvider) -> str:
+    blocks, descriptors = _build_translation_job(text, title_hint=title_hint)
+    translated_map = provider.translate_blocks(title=title_hint or "Skill Document", blocks=blocks) if blocks else {}
+    return _compose_translated_markdown(descriptors=descriptors, translated_map=translated_map)
 
 
 def _has_clear_trigger(document: NormalizedDocument) -> bool:
@@ -433,6 +446,37 @@ def _provider_suggestions(
     if isinstance(suggestions, list) and suggestions:
         return suggestions
     return None
+
+
+def build_llm_request(document: NormalizedDocument) -> dict[str, object]:
+    purpose = document.metadata.get("description") or document.title
+    score = _score_document(document)
+    safety = _safety_level(document)
+    references = [
+        {
+            "target": reference.target,
+            "kind": reference.kind,
+            "condition": reference.condition,
+            "line": reference.line,
+        }
+        for reference in document.references
+    ]
+    blocks, _ = _build_translation_job(document.raw_text, title_hint=document.title)
+    return {
+        "translation": {
+            "title": document.title,
+            "blocks": blocks,
+        },
+        "insights": {
+            "title": document.title,
+            "summary": _translate_text(purpose),
+            "sections": [section["title"] for section in document.sections],
+            "references": references,
+            "commands": document.commands,
+            "score": score,
+            "safety": safety,
+        },
+    }
 
 
 def analyze_document(document: NormalizedDocument, llm_provider: LLMProvider | None = None) -> dict[str, object]:
