@@ -3,11 +3,11 @@
     "title": "Skill Inspector",
     "purpose": "用于分析单个 skill 来源，并生成可读报告。",
     "score_total": 86,
-    "risk_level": "Medium"
+    "risk_level": "中风险"
   },
   "workflow": {
     "mermaid": "flowchart TD\ninput[\"Input Source\"] --> parse[\"Normalize Skill\"]\nparse --> safety[\"Safety Review\"]\nsafety --> output[\"HTML + JSON Report\"]",
-    "caption": "流程图优先展示执行路径、分支条件与引用触发时机。"
+    "caption": "流程图优先展示执行路径、分支条件与引用触发时机；当引用存在触发条件时，应优先体现在 Mermaid 边标签中。"
   },
   "translation": {
     "sections": [
@@ -27,16 +27,20 @@
     {
       "target": "examples/sample_generic_skill.md",
       "kind": "file",
+      "summary": "样例输入文件，用于展示纯 skill 版应如何读取目标 skill 内容并生成报告。",
       "condition": null,
       "line": "python scripts/skill_inspector.py --input-file examples/sample_generic_skill.md --output-dir out/sample"
     }
   ],
   "safety": {
-    "level": "Medium",
+    "level_code": "medium",
+    "level_label": "中风险",
+    "level_summary": "中风险表示当前 skill 含有需要留意的命令、联网或外部依赖，但暂未识别出高危权限操作。",
     "findings": [
       {
         "signal": "shell-command",
-        "level": "Medium",
+        "severity": "medium",
+        "meaning": "存在命令执行行为，需要明确命令用途与安全边界。",
         "evidence": "Run:"
       }
     ]
@@ -45,12 +49,12 @@
     "items": [
       {
         "platform": "Codex",
-        "status": "Unknown",
+        "status": "未知",
         "note": "纯 skill 版默认采用启发式判断。"
       },
       {
         "platform": "Claude",
-        "status": "Unknown",
+        "status": "未知",
         "note": "需要根据实际安装路径或当前上下文推断。"
       }
     ]

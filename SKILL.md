@@ -105,6 +105,12 @@ Requirements:
 - Focus on structure, references, safety boundaries, and maintainability
 - Avoid generic advice
 
+Reference presentation rules:
+
+- `summary` is the primary appendix description for each reference
+- `condition` should be reflected primarily in the workflow / Mermaid layer
+- when a reference has a trigger condition, prefer showing it on Mermaid edges instead of repeating it in appendix prose
+
 ## Output Constraints
 
 - Generate JSON first
