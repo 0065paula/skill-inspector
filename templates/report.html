@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{summary.title}} - Skill Inspector</title>
+    <script id="mermaid-source" type="application/json">{{workflow.mermaid_json}}</script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+      mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+      const sourceEl = document.getElementById("mermaid-source");
+      const source = JSON.parse(sourceEl.textContent);
+      const targets = [
+        { id: "workflow-graph", key: "workflow" },
+        { id: "viewer-graph", key: "viewer" }
+      ];
+      for (const target of targets) {
+        const container = document.getElementById(target.id);
+        if (!container) continue;
+        const { svg } = await mermaid.render(`skill-inspector-${target.key}`, source);
+        container.innerHTML = svg;
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3f1eb;
+        --panel: rgba(255, 255, 255, 0.94);
+        --ink: #171717;
+        --muted: #66625b;
+        --line: rgba(37, 31, 22, 0.08);
+        --shadow: 0 20px 50px rgba(45, 36, 22, 0.06);
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(62, 105, 180, 0.08), transparent 28%),
+          linear-gradient(180deg, #f7f5ef 0%, var(--bg) 100%);
+        color: var(--ink);
+      }
+      main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 72px; }
+      .hero, .panel, .meta-card, .nav-shell, .viewer-shell {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+      .hero { border-radius: 24px; padding: 28px; margin-bottom: 16px; }
+      .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+      .eyebrow, .section-kicker { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+      h1 { margin: 0 0 10px; font-size: 34px; line-height: 1.15; }
+      h2 { margin: 0 0 10px; font-size: 22px; line-height: 1.2; }
+      h3 { margin: 0 0 8px; font-size: 17px; }
+      p { margin: 0 0 10px; }
+      .summary { max-width: 780px; font-size: 16px; color: #2b2620; }
+      .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .pill, .nav-link { display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 10px; font-size: 12px; line-height: 1; }
+      .pill { background: #f0ede6; color: #4d473f; }
+      .nav-shell { position: sticky; top: 14px; z-index: 5; border-radius: 18px; margin-bottom: 18px; }
+      .nav { display: flex; gap: 10px; overflow-x: auto; padding: 12px; }
+      .nav-link { color: #433d36; background: rgba(255, 255, 255, 0.72); text-decoration: none; border: 1px solid rgba(37, 31, 22, 0.06); white-space: nowrap; }
+      .layout { display: grid; gap: 18px; }
+      .panel { border-radius: 24px; padding: 24px; }
+      .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+      .viewer-trigger, .viewer-close { border: 0; border-radius: 999px; background: #1f1f1f; color: #fff; padding: 10px 14px; font: inherit; cursor: pointer; }
+      .graph-shell { min-height: 280px; overflow: auto; border-radius: 18px; background: linear-gradient(180deg, #fbfaf7 0%, #f5f2ea 100%); border: 1px solid rgba(37, 31, 22, 0.06); padding: 18px; }
+      .graph-shell svg { min-width: 820px; height: auto; }
+      .translation-panel { display: grid; gap: 16px; }
+      .translation-block { border-top: 1px solid rgba(37, 31, 22, 0.08); padding-top: 16px; }
+      .translation-block:first-of-type { border-top: 0; padding-top: 0; }
+      .translation-compare { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 18px; }
+      .translation-col { min-width: 0; }
+      .translation-col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+      .translation-col-head span { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+      .translation-block-row { padding: 12px 0; border-top: 1px dashed rgba(37, 31, 22, 0.08); }
+      .translation-block-row:first-child { border-top: 0; padding-top: 0; }
+      .translation-text, .translation-original { white-space: pre-wrap; word-break: break-word; color: #2a241d; }
+      .translation-original { color: #4a443c; }
+      .meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .meta-card { border-radius: 20px; padding: 18px; }
+      .meta-stack, .status-grid, .source-list { display: grid; gap: 12px; }
+      .meta-row, .status-row, .score-row, .source-item { border: 1px solid rgba(37, 31, 22, 0.06); background: rgba(248, 246, 241, 0.85); border-radius: 16px; padding: 12px 14px; }
+      .meta-row strong, .source-item strong { display: block; margin-bottom: 4px; word-break: break-word; }
+      .status-row { display: flex; justify-content: space-between; gap: 14px; }
+      .score-row { display: grid; gap: 6px; }
+      .score-bar { height: 8px; border-radius: 999px; background: rgba(33, 87, 166, 0.12); overflow: hidden; }
+      .score-bar span { display: block; height: 100%; background: linear-gradient(90deg, #4177c7 0%, #2157a6 100%); border-radius: 999px; }
+      .source-item span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+      .muted { color: var(--muted); }
+      .source-card { grid-column: 1 / -1; }
+      .viewer-shell { position: fixed; inset: 0; display: none; background: rgba(24, 20, 16, 0.64); z-index: 30; padding: 24px; }
+      .viewer-shell.is-open { display: block; }
+      .viewer { max-width: 1280px; height: calc(100vh - 48px); margin: 0 auto; border-radius: 28px; background: rgba(250, 248, 242, 0.98); border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 30px 90px rgba(0, 0, 0, 0.24); display: flex; flex-direction: column; }
+      .viewer-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 20px; border-bottom: 1px solid rgba(37, 31, 22, 0.08); }
+      .viewer-body { padding: 20px; overflow: auto; }
+      @media (max-width: 900px) {
+        main { padding: 20px 16px 56px; }
+        .hero, .panel { padding: 20px; }
+        .meta-grid { grid-template-columns: 1fr; }
+        .translation-compare { grid-template-columns: 1fr; }
+        h1 { font-size: 28px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow">Skill Inspector</p>
+            <h1>{{summary.title}}</h1>
+            <p class="summary">{{summary.purpose}}</p>
+          </div>
+          <div class="pill-row">
+            <span class="pill">总分 {{summary.score_total}}/100</span>
+            <span class="pill">风险 {{summary.risk_level}}</span>
+            <span class="pill">引用 {{references_count}}</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="nav-shell">
+        <nav class="nav" aria-label="Report sections">
+          <a class="nav-link" href="#workflow">流程图</a>
+          <a class="nav-link" href="#translation">中文翻译</a>
+          <a class="nav-link" href="#references">引用</a>
+          <a class="nav-link" href="#safety">安全</a>
+          <a class="nav-link" href="#suggestions">建议</a>
+          <a class="nav-link" href="#score">评分</a>
+          <a class="nav-link" href="#source">来源</a>
+        </nav>
+      </div>
+
+      <div class="layout">
+        <section class="panel workflow-panel" id="workflow">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Primary View</p>
+              <h2>执行逻辑流程图</h2>
+              <p class="muted">{{workflow.caption}}</p>
+            </div>
+            <button class="viewer-trigger" type="button" data-open-viewer="mermaid-viewer">全屏查看</button>
+          </div>
+          <div class="graph-shell"><div id="workflow-graph"></div></div>
+        </section>
+
+        <section class="panel translation-panel" id="translation">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Secondary View</p>
+              <h2>中文翻译</h2>
+              <p class="muted">按内容段落展开，保持中文与原文左右对照。</p>
+            </div>
+          </div>
+          {{translation_sections_html}}
+        </section>
+
+        <div class="meta-grid">
+          <section class="meta-card" id="references">
+            <p class="section-kicker">Meta</p>
+            <h2>引用关系</h2>
+            {{references_html}}
+          </section>
+
+          <section class="meta-card" id="safety">
+            <p class="section-kicker">Meta</p>
+            <h2>安全评估</h2>
+            {{safety_html}}
+          </section>
+
+          <section class="meta-card" id="suggestions">
+            <p class="section-kicker">Meta</p>
+            <h2>优化建议</h2>
+            {{suggestions_html}}
+          </section>
+
+          <section class="meta-card" id="score">
+            <p class="section-kicker">Meta</p>
+            <h2>评分维度</h2>
+            {{score_html}}
+          </section>
+
+          <section class="meta-card source-card" id="source">
+            <p class="section-kicker">Meta</p>
+            <h2>来源信息</h2>
+            {{source_html}}
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <div class="viewer-shell" id="mermaid-viewer" aria-hidden="true">
+      <div class="viewer">
+        <div class="viewer-head">
+          <div>
+            <p class="section-kicker">Fullscreen</p>
+            <h2>执行逻辑流程图</h2>
+          </div>
+          <button class="viewer-close" type="button" data-close-viewer="mermaid-viewer">关闭</button>
+        </div>
+        <div class="viewer-body">
+          <div class="graph-shell"><div id="viewer-graph"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const openButtons = document.querySelectorAll("[data-open-viewer]");
+        const closeButtons = document.querySelectorAll("[data-close-viewer]");
+        const closeViewer = (viewer) => {
+          viewer.classList.remove("is-open");
+          viewer.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
+        };
+        const openViewer = (viewer) => {
+          viewer.classList.add("is-open");
+          viewer.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+        };
+        openButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const viewer = document.getElementById(button.dataset.openViewer);
+            if (viewer) openViewer(viewer);
+          });
+        });
+        closeButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const viewer = document.getElementById(button.dataset.closeViewer);
+            if (viewer) closeViewer(viewer);
+          });
+        });
+        document.querySelectorAll(".viewer-shell").forEach((viewer) => {
+          viewer.addEventListener("click", (event) => {
+            if (event.target === viewer) closeViewer(viewer);
+          });
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            document.querySelectorAll(".viewer-shell.is-open").forEach((viewer) => closeViewer(viewer));
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

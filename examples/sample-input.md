@@ -9,4 +9,8 @@ description: Use when a simple workflow needs examples
 
 - Read `docs/reference.md` when examples are requested
 - Visit https://example.com when local documentation is unavailable
-- Run: pytest tests/test_sample.py -v
+- Run:
+
+```bash
+python scripts/run_example.py --check
+```

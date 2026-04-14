@@ -7,60 +7,105 @@ description: Use when a skill link, skill file, or pasted skill content needs st
 
 ## Overview
 
-Analyze one generic skill source at a time and generate a static Chinese-first HTML report plus JSON artifacts.
+Analyze one skill source at a time and produce:
 
-## When to Use
+- a structured `report.json`
+- a polished `report.html`
 
-- A human provides a skill URL, local path, or full text
-- The task requires understanding how the skill works
-- The task requires reference tracing or safety review
-- The task requires checking whether the skill is already installed locally
+This version is agent-native. Do not rely on Python analysis scripts. Use the templates and schema in this directory and let the current agent perform the analysis.
 
-## Invocation
+## Inputs
 
-Run:
+Supported inputs:
 
-```bash
-python scripts/skill_inspector.py --input-file examples/sample_generic_skill.md --output-dir out/sample
-```
+- pasted skill text
+- local path to a skill file
+- remote skill link
 
-## Agent Bridge
+## Required Workflow
 
-Preferred workflow. When the current agent should generate the translation and suggestions itself, use this two-step flow:
+### Step 1: Read and normalize the source
 
-1. Dump a request payload:
+Extract:
 
-```bash
-python scripts/skill_inspector.py \
-  --input-file SKILL.md \
-  --output-dir out/bridge \
-  --dump-llm-request out/bridge-request.json
-```
+- title
+- frontmatter
+- sections
+- commands
+- file references
+- URL references
+- workflow signals
 
-2. Read `out/bridge-request.json`, call the current model, and write `out/bridge-response.json` in this shape:
+Do not generate the final report yet.
 
-```json
-{
-  "translations": {
-    "line-2": "..."
-  },
-  "suggestions": [
-    {
-      "title": "...",
-      "detail": "...",
-      "priority": "high"
-    }
-  ]
-}
-```
+### Step 2: Produce structured JSON first
 
-3. Re-run the script with the generated response:
+Before generating HTML, create a `report.json` object that conforms to:
 
-```bash
-python scripts/skill_inspector.py \
-  --input-file SKILL.md \
-  --output-dir out/bridge \
-  --llm-response-file out/bridge-response.json
-```
+`templates/report.schema.json`
 
-If no bridge response is provided, the script may use a secondary provider when configured. If neither bridge nor provider is available, it falls back to the built-in translation and suggestion logic.
+The JSON must include, at minimum:
+
+- `summary`
+- `workflow`
+- `translation`
+- `references`
+- `safety`
+- `score`
+- `suggestions`
+- `source`
+
+Do not skip this step.
+
+### Step 3: Fill the HTML template
+
+Use:
+
+`templates/report.html`
+
+Rules:
+
+- Preserve the template structure
+- Fill placeholders only
+- Keep the workflow diagram as the primary section
+- Keep translation as the secondary section
+- Keep meta sections compact
+
+### Step 4: Write outputs
+
+Write:
+
+- `out/report.json`
+- `out/report.html`
+
+## Translation Rules
+
+Load:
+
+`prompts/translation.md`
+
+Requirements:
+
+- Chinese should be concise, accurate, and readable
+- Product names, framework names, tool names, commands, paths, URLs, variables, and frontmatter keys stay in English
+- Do not summarize
+- Do not add explanation
+
+## Insight Rules
+
+Load:
+
+`prompts/insights.md`
+
+Requirements:
+
+- Suggestions must be concrete and short
+- Focus on structure, references, safety boundaries, and maintainability
+- Avoid generic advice
+
+## Output Constraints
+
+- Generate JSON first
+- HTML must reflect the JSON, not a separate interpretation
+- Do not invent sections that are unsupported by the source
+- Do not translate commands, code, paths, URLs, or frontmatter keys

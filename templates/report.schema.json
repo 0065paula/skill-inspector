@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SkillInspectorReport",
+  "type": "object",
+  "required": [
+    "summary",
+    "workflow",
+    "translation",
+    "references",
+    "safety",
+    "score",
+    "suggestions",
+    "source"
+  ],
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": ["title", "purpose", "score_total", "risk_level"],
+      "properties": {
+        "title": { "type": "string" },
+        "purpose": { "type": "string" },
+        "score_total": { "type": "number" },
+        "risk_level": { "type": "string" }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "required": ["mermaid", "caption"],
+      "properties": {
+        "mermaid": { "type": "string" },
+        "caption": { "type": "string" }
+      }
+    },
+    "translation": {
+      "type": "object",
+      "required": ["sections"],
+      "properties": {
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title_zh", "title_en", "rows"],
+            "properties": {
+              "title_zh": { "type": "string" },
+              "title_en": { "type": "string" },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["zh", "en"],
+                  "properties": {
+                    "zh": { "type": "string" },
+                    "en": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target", "kind", "condition", "line"],
+        "properties": {
+          "target": { "type": "string" },
+          "kind": { "type": "string" },
+          "condition": { "type": ["string", "null"] },
+          "line": { "type": "string" }
+        }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "required": ["level", "findings"],
+      "properties": {
+        "level": { "type": "string" },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["signal", "level", "evidence"],
+            "properties": {
+              "signal": { "type": "string" },
+              "level": { "type": "string" },
+              "evidence": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "score": {
+      "type": "object",
+      "required": ["dimensions"],
+      "properties": {
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "value", "rationale"],
+            "properties": {
+              "name": { "type": "string" },
+              "value": { "type": "number" },
+              "rationale": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "detail", "priority"],
+        "properties": {
+          "title": { "type": "string" },
+          "detail": { "type": "string" },
+          "priority": { "type": "string" }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["primary_label", "primary_value"],
+      "properties": {
+        "primary_label": { "type": "string" },
+        "primary_value": { "type": "string" }
+      }
+    }
+  }
+}
