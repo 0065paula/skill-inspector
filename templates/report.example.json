@@ -41,6 +41,20 @@
       }
     ]
   },
+  "install": {
+    "items": [
+      {
+        "platform": "Codex",
+        "status": "Unknown",
+        "note": "纯 skill 版默认采用启发式判断。"
+      },
+      {
+        "platform": "Claude",
+        "status": "Unknown",
+        "note": "需要根据实际安装路径或当前上下文推断。"
+      }
+    ]
+  },
   "score": {
     "dimensions": [
       {

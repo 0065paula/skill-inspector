@@ -23,3 +23,4 @@ Expected output:
 - Fill `suggestions`
 - Fill `score.dimensions[*].rationale`
 - Optionally refine `safety.findings[*].evidence` wording if needed
+- Fill `install.items[*].note` when installation status depends on heuristic judgment

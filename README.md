@@ -14,6 +14,13 @@ This version does not depend on Python analysis scripts. The agent reads a targe
 3. Fill `templates/report.html` using the structured data.
 4. Write both outputs to an `out/` directory.
 
+Important:
+
+- JSON first, HTML second
+- references should be deduplicated
+- `suggestions` must never be empty
+- `install` must always be present, even when it is heuristic
+
 ## Key Files
 
 - `SKILL.md`: main workflow and constraints

@@ -51,6 +51,7 @@ The JSON must include, at minimum:
 - `translation`
 - `references`
 - `safety`
+- `install`
 - `score`
 - `suggestions`
 - `source`
@@ -70,6 +71,7 @@ Rules:
 - Keep the workflow diagram as the primary section
 - Keep translation as the secondary section
 - Keep meta sections compact
+- Keep the install section visible in the meta area
 
 ### Step 4: Write outputs
 
@@ -109,3 +111,6 @@ Requirements:
 - HTML must reflect the JSON, not a separate interpretation
 - Do not invent sections that are unsupported by the source
 - Do not translate commands, code, paths, URLs, or frontmatter keys
+- Deduplicate repeated references while preserving the most useful evidence line
+- Always provide at least one concrete suggestion
+- Always provide an `install` result, even when it is heuristic or `unknown`

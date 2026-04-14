@@ -8,3 +8,5 @@ Core principles:
 - preserve template structure
 - preserve commands, paths, URLs, and frontmatter keys
 - keep translation and suggestions compact and controllable
+- keep `install` as a first-class output section
+- deduplicate repeated references before writing the final JSON

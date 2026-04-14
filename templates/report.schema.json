@@ -8,6 +8,7 @@
     "translation",
     "references",
     "safety",
+    "install",
     "score",
     "suggestions",
     "source"
@@ -86,6 +87,24 @@
               "signal": { "type": "string" },
               "level": { "type": "string" },
               "evidence": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "install": {
+      "type": "object",
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["platform", "status"],
+            "properties": {
+              "platform": { "type": "string" },
+              "status": { "type": "string" },
+              "note": { "type": "string" }
             }
           }
         }
