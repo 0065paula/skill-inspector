@@ -4,7 +4,17 @@ from skill_inspector.render import render_report
 
 
 def test_render_report_writes_html_json_and_artifacts(tmp_path: Path) -> None:
-    bundle = {"kind": "text", "text": "# Demo Skill\n\n## Workflow\nUse when docs are missing.", "meta": {"source": "pasted"}}
+    bundle = {
+        "kind": "url",
+        "text": "# Demo Skill\n\n## Workflow\nUse when docs are missing.",
+        "meta": {
+            "url": "https://example.com/skill",
+            "request_url": "https://raw.example.com/skill",
+            "resolved_url": "https://raw.example.com/skill",
+            "content_type": "text/plain",
+            "status_code": 200,
+        },
+    }
     analysis = {
         "summary": {"title": "Demo Skill", "purpose": "适用于演示"},
         "structure": {"metadata": {"name": "demo-skill"}, "sections": ["Workflow"], "commands": [], "reference_count": 1},
@@ -55,7 +65,11 @@ def test_render_report_writes_html_json_and_artifacts(tmp_path: Path) -> None:
     assert "viewer-graph" in html
     assert "workflow-graph" in html
     assert "图例" not in html
-    assert "输入类型" in html
-    assert "来源" in html
-    assert "{'source': 'pasted'}" not in html
+    assert "原始链接" in html
+    assert "https://example.com/skill" in html
+    assert "请求链接" not in html
+    assert "解析后链接" not in html
+    assert "内容类型" not in html
+    assert "HTTP 状态" not in html
+    assert "{'url':" not in html
     assert "Use when docs are missing." in html

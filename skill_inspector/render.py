@@ -135,20 +135,13 @@ def _paired_translation_sections(original_text: str, translated_text: str) -> li
 
 def _source_meta_items(source_bundle: dict[str, object]) -> list[dict[str, str]]:
     meta = source_bundle.get("meta", {})
-    items: list[dict[str, str]] = [{"label": "输入类型", "value": str(source_bundle.get("kind", "unknown"))}]
-    label_map = {
-        "source": "来源",
-        "path": "本地路径",
-        "url": "原始链接",
-        "request_url": "请求链接",
-        "resolved_url": "解析后链接",
-        "content_type": "内容类型",
-        "status_code": "HTTP 状态",
-    }
-    for key in ["source", "path", "url", "request_url", "resolved_url", "content_type", "status_code"]:
-        if key in meta and meta[key] is not None:
-            items.append({"label": label_map[key], "value": str(meta[key])})
-    return items
+    if meta.get("url"):
+        return [{"label": "原始链接", "value": str(meta["url"])}]
+    if meta.get("path"):
+        return [{"label": "本地路径", "value": str(meta["path"])}]
+    if meta.get("source"):
+        return [{"label": "来源", "value": str(meta["source"])}]
+    return [{"label": "输入类型", "value": str(source_bundle.get("kind", "unknown"))}]
 
 
 def _nav_items(analysis: dict[str, object]) -> list[dict[str, str]]:
