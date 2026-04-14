@@ -1,0 +1,216 @@
+{
+  "summary": {
+    "title": "talk-normal",
+    "purpose": "一个用于压缩 AI agent 冗余表达的安装型 skill。它通过把 `prompt.md` 中的规则注入工作区 `AGENTS.md`，让后续回复默认更直接、简洁、少废话。",
+    "score_total": 91,
+    "risk_level": "中风险"
+  },
+  "workflow": {
+    "mermaid": "flowchart TD\nsource[\"Remote SKILL.md\"]\nreadme[\"Read skill description\"]\ninstall[\"bash install.sh\"]\nuninstall[\"bash install.sh --uninstall\"]\nprompt[\"prompt.md rules\"]\nagents[\"AGENTS.md\"]\nbench[\"TEST_RESULTS.md\"]\ncontrib[\"CONTRIBUTING.md\"]\nsource -->|read source| readme\nreadme -->|when installing or updating| install\nreadme -->|when uninstalling| uninstall\ninstall -->|inject prompt block| prompt\nprompt -->|write between markers| agents\nreadme -->|when reviewing benchmark claims| bench\nreadme -->|when contributing new rules| contrib\nclassDef inputNode fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;\nclassDef parseNode fill:#dcfce7,stroke:#15803d,color:#166534;\nclassDef referenceNode fill:#ede9fe,stroke:#7c3aed,color:#5b21b6;\nclassDef outputNode fill:#e5e7eb,stroke:#4b5563,color:#1f2937;\nclass source inputNode;\nclass readme parseNode;\nclass install,uninstall,prompt,bench,contrib referenceNode;\nclass agents outputNode;",
+    "caption": "这个 skill 的核心机制是通过 `install.sh` 把 `prompt.md` 的规则块写入工作区 `AGENTS.md`；触发条件优先体现在 Mermaid 边标签中。"
+  },
+  "translation": {
+    "sections": [
+      {
+        "title_zh": "概述",
+        "title_en": "Overview",
+        "rows": [
+          {
+            "zh": "`talk-normal` 是一个用于压制 LLM 套话和“企业风废话”的安装型 skill。它主打双语场景（英文与中文），并宣称在不损失信息的前提下显著缩短回复长度。",
+            "en": "talk-normal is an installer-style skill that suppresses filler, corporate-sounding LLM output. It targets bilingual usage and claims strong length reduction without losing information."
+          },
+          {
+            "zh": "它不是一个需要每轮手动调用的 workflow skill，而是一次性把行为规则装进工作区，让 agent 后续默认按这些规则说话。",
+            "en": "It is not a per-turn workflow skill. It installs an always-on behavior modifier into the workspace so later replies inherit the rules by default."
+          }
+        ]
+      },
+      {
+        "title_zh": "它具体做什么",
+        "title_en": "What this skill does",
+        "rows": [
+          {
+            "zh": "被调用后，它会把 `prompt.md` 的内容注入当前工作区的 `AGENTS.md`。注入内容包在 `# --- talk-normal BEGIN ---` 和 `# --- talk-normal END ---` 标记之间，避免破坏现有规则。",
+            "en": "When invoked, it injects the contents of `prompt.md` into the workspace `AGENTS.md`. The injected block is wrapped by explicit BEGIN/END markers so it can coexist with existing rules."
+          },
+          {
+            "zh": "这意味着它更像一个“行为安装器”，而不是一个逐步执行的分析流程。",
+            "en": "That makes it closer to a behavior installer than a turn-by-turn workflow process."
+          }
+        ]
+      },
+      {
+        "title_zh": "如何运行",
+        "title_en": "How to run",
+        "rows": [
+          {
+            "zh": "安装或更新时运行 `bash install.sh`；卸载时运行 `bash install.sh --uninstall`。脚本是幂等的：重复执行会先移除旧 block，再写入最新规则。",
+            "en": "Run `bash install.sh` to install or update, and `bash install.sh --uninstall` to remove. The script is idempotent: it strips the old block before writing the latest rules."
+          },
+          {
+            "zh": "`install.sh` 会优先在当前目录、`$HOME` 或 `OPENCLAW_WORKSPACE` 下寻找 `AGENTS.md`，找不到时就在当前目录创建一个新的。",
+            "en": "`install.sh` looks for `AGENTS.md` in the current directory, `$HOME`, or `OPENCLAW_WORKSPACE`, and creates one locally if none exists."
+          }
+        ]
+      },
+      {
+        "title_zh": "规则内容",
+        "title_en": "What gets installed",
+        "rows": [
+          {
+            "zh": "`prompt.md` 里的规则聚焦于消灭几类典型废话模式：开场套话、总结式收尾、否定式转折、平衡作文式比较、条件式后续菜单等。",
+            "en": "The rules in `prompt.md` target common filler patterns: opening fluff, summary-stamp closings, negation-based contrastive phrasing, balanced-essay comparisons, and conditional follow-up menus."
+          },
+          {
+            "zh": "这些规则里最关键的一类，是要求直接给正向结论，避免“不是 X，而是 Y”这类修辞框架。",
+            "en": "A core rule is to prefer direct positive claims and avoid reject-then-correct phrasing such as '不是 X，而是 Y'."
+          }
+        ]
+      },
+      {
+        "title_zh": "更新、兼容性与验证",
+        "title_en": "Updating, compatibility, and measured effect",
+        "rows": [
+          {
+            "zh": "更新路径是先 `clawhub update talk-normal`，再重新执行安装脚本。兼容性上，它面向任何支持 system prompts 或 custom instructions 的模型。",
+            "en": "Updating is a two-step path: `clawhub update talk-normal`, then rerun the installer. Compatibility is framed broadly for any model that honors system prompts or custom instructions."
+          },
+          {
+            "zh": "`TEST_RESULTS.md` 给出了基于 10 个提示词的 benchmark，对 GPT-5.4 和 GPT-4o-mini 都记录了压缩率。文档里的平均压缩比例大约在 72% 到 73% 左右。",
+            "en": "`TEST_RESULTS.md` contains benchmark comparisons across 10 prompts for GPT-5.4 and GPT-4o-mini, with average reduction figures around the low 70% range."
+          }
+        ]
+      },
+      {
+        "title_zh": "贡献方式",
+        "title_en": "Contributing",
+        "rows": [
+          {
+            "zh": "`CONTRIBUTING.md` 说明，新规则必须基于真实输出中的真实废话模式，不能只是个人审美偏好；每条规则都要给出“触发它的回复”“模型信息”“模式名”“候选规则文本”和“为什么是普遍问题”。",
+            "en": "`CONTRIBUTING.md` requires each new rule to be grounded in a real slop pattern from real LLM output, not just personal preference. Contributors must provide the triggering reply, model context, pattern name, proposed rule text, and evidence that the issue is widespread."
+          }
+        ]
+      }
+    ]
+  },
+  "references": [
+    {
+      "target": "https://github.com/hexiecs/talk-normal",
+      "kind": "url",
+      "summary": "上游仓库主页，用于确认 skill 来源、版本演进和 issue 入口。",
+      "condition": "when verifying upstream source",
+      "line": "homepage: https://github.com/hexiecs/talk-normal"
+    },
+    {
+      "target": "install.sh",
+      "kind": "file",
+      "summary": "安装脚本，负责把 `prompt.md` 写入工作区 `AGENTS.md`，并处理 uninstall / update 的幂等逻辑。",
+      "condition": "when installing, updating, or uninstalling",
+      "line": "To install or update talk-normal in the current workspace: bash install.sh"
+    },
+    {
+      "target": "prompt.md",
+      "kind": "file",
+      "summary": "核心规则文件，定义 talk-normal 实际施加给 agent 的行为约束。",
+      "condition": "when reviewing what gets injected into AGENTS.md",
+      "line": "The contents of `prompt.md` get injected into your `AGENTS.md`."
+    },
+    {
+      "target": "TEST_RESULTS.md",
+      "kind": "file",
+      "summary": "完整 benchmark 数据源，用于支撑压缩率与效果声明。",
+      "condition": "when checking measured effect claims",
+      "line": "Full benchmark data for 10 prompts across GPT-4o-mini and GPT-5.4 is in `TEST_RESULTS.md`."
+    },
+    {
+      "target": "CONTRIBUTING.md",
+      "kind": "file",
+      "summary": "贡献说明，定义新增规则的证据要求与提交格式。",
+      "condition": "when proposing new rules",
+      "line": "Contributing: see `CONTRIBUTING.md` in the upstream repo for the rule-submission format."
+    }
+  ],
+  "safety": {
+    "level_code": "medium",
+    "level_label": "中风险",
+    "level_summary": "中风险表示它会执行 shell 脚本并修改工作区 `AGENTS.md`，但作用范围主要局限于本地文本规则注入，没有直接涉及高权限系统设置。",
+    "findings": [
+      {
+        "signal": "shell-installer",
+        "severity": "medium",
+        "meaning": "通过 `bash install.sh` 执行本地脚本，存在脚本执行风险，需要审阅脚本内容。",
+        "evidence": "bash install.sh"
+      },
+      {
+        "signal": "workspace-rule-injection",
+        "severity": "medium",
+        "meaning": "会修改或创建 `AGENTS.md`，属于持久化行为变化，需要明确影响范围和回滚方式。",
+        "evidence": "The contents of `prompt.md` get injected into your `AGENTS.md`."
+      }
+    ]
+  },
+  "install": {
+    "items": [
+      {
+        "platform": "OpenClaw / AGENTS.md",
+        "status": "Installer-based",
+        "note": "这是安装型 skill，不是每轮调用型 workflow；核心行为是把规则写入 `AGENTS.md`。"
+      },
+      {
+        "platform": "Current workspace",
+        "status": "Unknown",
+        "note": "是否已安装取决于当前工作区是否存在带 `talk-normal BEGIN/END` 标记的 `AGENTS.md` block。"
+      }
+    ]
+  },
+  "score": {
+    "dimensions": [
+      {
+        "name": "trigger_clarity",
+        "value": 18,
+        "rationale": "适用场景、安装方式与‘不是每轮 workflow’这一点写得比较清楚。"
+      },
+      {
+        "name": "structural_quality",
+        "value": 19,
+        "rationale": "结构完整，What / How / Update / Compatibility / Measured effect / Upstream 都覆盖到了。"
+      },
+      {
+        "name": "operational_guidance",
+        "value": 19,
+        "rationale": "安装、更新、卸载路径清晰，且 `install.sh` 的幂等行为有说明。"
+      },
+      {
+        "name": "reference_hygiene",
+        "value": 18,
+        "rationale": "关键依赖文件都被点名，引用关系明确；若能直接简述 `prompt.md` 规则层次会更完整。"
+      },
+      {
+        "name": "maintainability",
+        "value": 17,
+        "rationale": "有 benchmark 和贡献流程，但长期演进仍较依赖维护者个人判断规则是否属于普遍废话模式。"
+      }
+    ]
+  },
+  "suggestions": [
+    {
+      "title": "补一段安装后验证步骤",
+      "detail": "建议在 `How to run` 或 `What gets installed` 后面补一句“安装后如何确认已生效”，例如检查 `AGENTS.md` 中的 marker block 是否存在。",
+      "priority": "high"
+    },
+    {
+      "title": "补一段 uninstall 影响说明",
+      "detail": "建议明确 uninstall 只删除 marker 包裹的规则块，不会影响其他手写规则，以减少用户对回滚风险的顾虑。",
+      "priority": "medium"
+    },
+    {
+      "title": "压缩 benchmark 摘要的表达",
+      "detail": "当前 benchmark 信息已经很强，建议把摘要区的效果表达再压短一点，避免和 `TEST_RESULTS.md` 的详表形成重复。",
+      "priority": "medium"
+    }
+  ],
+  "source": {
+    "primary_label": "原始链接",
+    "primary_value": "https://github.com/hexiecs/talk-normal/blob/main/skill/SKILL.md"
+  }
+}

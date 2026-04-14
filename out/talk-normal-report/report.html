@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>talk-normal - Skill Inspector</title>
+    <script id="mermaid-source" type="application/json">"flowchart TD\nsource[\"Remote SKILL.md\"]\nreadme[\"Read skill description\"]\ninstall[\"bash install.sh\"]\nuninstall[\"bash install.sh --uninstall\"]\nprompt[\"prompt.md rules\"]\nagents[\"AGENTS.md\"]\nbench[\"TEST_RESULTS.md\"]\ncontrib[\"CONTRIBUTING.md\"]\nsource -->|read source| readme\nreadme -->|when installing or updating| install\nreadme -->|when uninstalling| uninstall\ninstall -->|inject prompt block| prompt\nprompt -->|write between markers| agents\nreadme -->|when reviewing benchmark claims| bench\nreadme -->|when contributing new rules| contrib\nclassDef inputNode fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;\nclassDef parseNode fill:#dcfce7,stroke:#15803d,color:#166534;\nclassDef referenceNode fill:#ede9fe,stroke:#7c3aed,color:#5b21b6;\nclassDef outputNode fill:#e5e7eb,stroke:#4b5563,color:#1f2937;\nclass source inputNode;\nclass readme parseNode;\nclass install,uninstall,prompt,bench,contrib referenceNode;\nclass agents outputNode;"</script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+      const sourceEl = document.getElementById("mermaid-source");
+      const source = JSON.parse(sourceEl.textContent);
+      const targets = [
+        { id: "workflow-graph", key: "workflow" },
+        { id: "viewer-graph", key: "viewer" }
+      ];
+      for (const target of targets) {
+        const container = document.getElementById(target.id);
+        if (!container) continue;
+        const { svg } = await mermaid.render(`skill-inspector-${target.key}`, source);
+        container.innerHTML = svg;
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f5f1;
+        --paper: rgba(255, 255, 255, 0.82);
+        --ink: #181818;
+        --muted: #68645d;
+        --line: rgba(34, 31, 26, 0.08);
+        --line-strong: rgba(22, 27, 34, 0.16);
+        --accent: #173b6f;
+        --accent-soft: rgba(23, 59, 111, 0.08);
+        --risk-low: #16795a;
+        --risk-medium: #a56b12;
+        --risk-high: #b6492a;
+        --risk-critical: #b42318;
+        --score-excellent: #1f68d7;
+        --score-strong: #2f86d9;
+        --score-good: #5b8dff;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font: 14px/1.68 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          linear-gradient(180deg, rgba(23, 59, 111, 0.045) 0, rgba(23, 59, 111, 0) 120px),
+          linear-gradient(180deg, #faf9f6 0%, var(--bg) 100%);
+        color: var(--ink);
+      }
+      main { max-width: 1228px; margin: 0 auto; padding: 22px 26px 72px; }
+      .eyebrow, .section-kicker { color: var(--muted); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+      .eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-bottom: 10px; }
+      h1 { margin: 0 0 8px; font-size: 35px; line-height: 1.06; letter-spacing: -.035em; }
+      h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.18; letter-spacing: -.02em; }
+      h3 { margin: 0 0 6px; font-size: 16px; line-height: 1.28; }
+      p { margin: 0 0 10px; }
+      .hero { position: relative; padding: 8px 0 18px; margin-bottom: 12px; border-bottom: 1px solid var(--line-strong); }
+      .hero-top { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 24px; }
+      .hero-copy { min-width: 0; }
+      .summary { max-width: 62ch; font-size: 15px; line-height: 1.55; color: #2d2923; margin-bottom: 0; }
+      .hero-stats { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; min-width: 220px; }
+      .hero-stat { display: grid; grid-template-columns: 74px 1fr; align-items: baseline; gap: 10px; padding-top: 7px; border-top: 1px solid rgba(31,35,41,.08); }
+      .hero-stat:first-child { padding-top: 0; border-top: 0; }
+      .hero-stat dt { margin: 0; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .hero-stat dd { margin: 0; color: var(--accent); font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+      .tone-low { color: var(--risk-low) !important; }
+      .tone-medium { color: var(--risk-medium) !important; }
+      .nav-shell { position: sticky; top: 0; z-index: 5; margin-bottom: 26px; background: transparent; border-bottom: 1px solid rgba(34,31,26,.06); backdrop-filter: blur(12px); }
+      .nav { display: flex; gap: 12px; overflow-x: auto; padding: 8px 0 10px; }
+      .nav-link { color: #444039; text-decoration: none; white-space: nowrap; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; padding: 0 0 6px; border-bottom: 1px solid transparent; }
+      .nav-link:hover { color: var(--accent); border-bottom-color: rgba(23,59,111,.22); }
+      .layout { display: grid; grid-template-columns: minmax(0,1fr) 232px; gap: 40px; align-items: start; }
+      .main-column, .side-column { min-width: 0; }
+      .main-column { display: grid; gap: 34px; }
+      .side-column { display: grid; gap: 16px; position: sticky; top: 50px; padding-left: 18px; border-left: 1px solid rgba(22,27,34,.08); }
+      .appendix-head { padding-bottom: 6px; }
+      .appendix-head p { margin: 0; }
+      .panel, .meta-card { background: transparent; border: 0; box-shadow: none; }
+      .panel { padding-top: 0; }
+      .meta-card { border-top: 1px solid var(--line); padding-top: 12px; }
+      .side-column .meta-card:first-of-type { border-top: 0; padding-top: 0; }
+      .panel-head { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 14px; margin-bottom: 14px; }
+      .viewer-trigger, .viewer-close { border: 1px solid var(--line-strong); border-radius: 10px; background: rgba(255,255,255,.72); color: #212121; padding: 8px 12px; font: inherit; cursor: pointer; white-space: nowrap; }
+      .viewer-trigger:hover, .viewer-close:hover { background: #fff; }
+      .graph-shell { min-height: 296px; overflow: auto; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,.76) 0%, rgba(247,245,239,.88) 100%); border: 1px solid rgba(37,31,22,.08); padding: 14px; }
+      .graph-shell svg { min-width: 820px; height: auto; }
+      .translation-panel { display: grid; gap: 20px; }
+      .translation-block { border-top: 1px solid rgba(37,31,22,.08); padding-top: 18px; }
+      .translation-block:first-of-type { border-top: 0; padding-top: 0; }
+      .translation-compare { display: grid; grid-template-columns: minmax(0,1.22fr) minmax(0,.78fr); gap: 18px; }
+      .translation-col { min-width: 0; }
+      .translation-col + .translation-col { border-left: 1px solid rgba(22,27,34,.08); padding-left: 16px; }
+.translation-block-row { padding: 9px 0; }
+.translation-block-row:first-child { padding-top: 0; }
+      .translation-text { white-space: pre-wrap; word-break: break-word; color: #25211b; font-size: 13.5px; line-height: 1.74; }
+      .translation-original { white-space: pre-wrap; word-break: break-word; color: #5a554f; font-size: 12.5px; line-height: 1.7; }
+      .meta-stack, .status-grid, .source-list { display: grid; gap: 10px; }
+      .meta-row, .status-row, .score-row, .source-item { border: 0; border-bottom: 1px dashed rgba(37,31,22,.08); background: transparent; border-radius: 0; padding: 0 0 10px; }
+      .meta-row:last-child, .status-row:last-child, .score-row:last-child, .source-item:last-child { border-bottom: 0; padding-bottom: 0; }
+      .meta-row strong, .source-item strong { display: block; margin-bottom: 3px; word-break: break-word; font-size: 13px; line-height: 1.45; }
+      .meta-card h2 { font-size: 15px; line-height: 1.22; margin-bottom: 9px; letter-spacing: -.01em; }
+      .status-row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 13px; }
+      .install-summary, .score-summary { display: grid; gap: 6px; padding: 0 0 12px; border-bottom: 1px solid rgba(37,31,22,.1); }
+      .score-summary strong { display: block; font-size: 20px; line-height: 1.1; letter-spacing: -.02em; }
+      .score-summary--excellent strong { color: var(--score-excellent); }
+      .score-summary .meta-copy { font-size: 13px; line-height: 1.68; color: #454039; max-width: 32ch; }
+      .meta-row .muted, .status-row .muted, .source-item .muted { font-size: 12px; line-height: 1.5; }
+      .side-column .section-kicker { font-size: 10px; letter-spacing: .12em; }
+      .score-row { display: grid; gap: 4px; }
+      .score-row strong, .status-row strong { font-size: 12.5px; }
+      .score-row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+      .score-label { color: #24201b; }
+      .score-value { color: #5b5852; }
+      .meta-copy { font-size: 12.5px; line-height: 1.62; color: #3f3b35; }
+      .safety-summary { display: grid; gap: 6px; padding: 0 0 12px; border-bottom: 1px solid rgba(37,31,22,.1); }
+      .safety-summary strong { display: block; font-size: 20px; line-height: 1.1; letter-spacing: -.02em; }
+      .safety-summary .meta-copy { font-size: 13px; line-height: 1.7; color: #454039; max-width: 32ch; }
+      .safety-finding-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+      .safety-finding-title strong { margin: 0; }
+      .safety-severity { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+      .score-bar { height: 8px; border-radius: 999px; background: rgba(23,59,111,.12); overflow: hidden; }
+      .score-bar span { display: block; height: 100%; background: linear-gradient(90deg, #5a8df3 0%, #2d5fc9 100%); border-radius: 999px; }
+      .score-bar--excellent span { background: linear-gradient(90deg, #46a0ff 0%, #1f68d7 100%); }
+      .score-bar--strong span { background: linear-gradient(90deg, #57b6ff 0%, #2f86d9 100%); }
+      .score-bar--good span { background: linear-gradient(90deg, #8fa7ff 0%, #5b8dff 100%); }
+      .source-item span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .08em; }
+      .viewer-shell { position: fixed; inset: 0; display: none; background: rgba(24,20,16,.64); z-index: 30; padding: 24px; }
+      .viewer-shell.is-open { display: block; }
+      .viewer { max-width: 1280px; height: calc(100vh - 48px); margin: 0 auto; border-radius: 14px; background: rgba(250,248,242,.98); border: 1px solid rgba(255,255,255,.3); box-shadow: 0 24px 70px rgba(0,0,0,.18); display: flex; flex-direction: column; }
+      .viewer-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 20px; border-bottom: 1px solid rgba(37,31,22,.08); }
+      .viewer-body { padding: 20px; overflow: auto; }
+      @media (max-width: 1180px) {
+        main { padding: 22px 20px 60px; }
+        .layout { grid-template-columns: 1fr; gap: 28px; }
+        .side-column { position: static; gap: 18px; padding-left: 0; border-left: 0; }
+        .panel-head { grid-template-columns: 1fr; }
+        .translation-compare { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 900px) {
+        main { padding: 20px 16px 56px; }
+        .hero { padding: 6px 0 16px; }
+        .hero-top { grid-template-columns: 1fr; }
+        .hero-stats { min-width: 0; }
+        .layout { gap: 24px; }
+        h1 { font-size: 28px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="hero-top">
+          <div class="hero-copy">
+            <p class="eyebrow">Skill Inspector</p>
+            <h1>talk-normal</h1>
+            <p class="summary">一个用于压缩 AI agent 冗余表达的安装型 skill。它通过把 `prompt.md` 中的规则注入工作区 `AGENTS.md`，让后续回复默认更直接、简洁、少废话。</p>
+          </div>
+          <dl class="hero-stats">
+            <div class="hero-stat"><dt>评分</dt><dd>91/100</dd></div>
+            <div class="hero-stat"><dt>风险</dt><dd class="tone-medium">中风险</dd></div>
+            <div class="hero-stat"><dt>引用</dt><dd>5</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <div class="nav-shell">
+        <nav class="nav" aria-label="Report sections">
+          <a class="nav-link" href="#workflow">流程图</a>
+          <a class="nav-link" href="#translation">中文翻译</a>
+          <a class="nav-link" href="#references">引用</a>
+          <a class="nav-link" href="#safety">安全</a>
+          <a class="nav-link" href="#suggestions">建议</a>
+          <a class="nav-link" href="#install">安装</a>
+          <a class="nav-link" href="#score">评分</a>
+          <a class="nav-link" href="#source">来源</a>
+        </nav>
+      </div>
+
+      <div class="layout">
+        <div class="main-column">
+          <section class="panel workflow-panel" id="workflow">
+            <div class="panel-head">
+              <div>
+                <h2>执行逻辑流程图</h2>
+                <p class="muted">这个 skill 的核心机制是通过 `install.sh` 把 `prompt.md` 的规则块写入工作区 `AGENTS.md`；触发条件优先体现在 Mermaid 边标签中。</p>
+              </div>
+              <button class="viewer-trigger" type="button" data-open-viewer="mermaid-viewer">全屏查看</button>
+            </div>
+            <div class="graph-shell"><div id="workflow-graph"></div></div>
+          </section>
+
+          <section class="panel translation-panel" id="translation">
+            <div class="panel-head">
+              <div>
+                <h2>中文翻译</h2>
+                <p class="muted">按内容段落展开，保持中文与原文左右对照。</p>
+              </div>
+            </div>
+
+            <article class="translation-block" id="translation-1">
+              <h3>概述</h3>
+              <div class="translation-compare">
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-text">`talk-normal` 是一个用于压制 AI agent 套话和“企业风废话”的安装型 skill，主要面向中英双语场景。</div></div>
+                  <div class="translation-block-row"><div class="translation-text">它并不是每轮手动调用的 workflow skill，而是一次性把行为规则安装进工作区，让后续回复默认继承这些约束。</div></div>
+                </div>
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-original">talk-normal is an installer-style skill for suppressing filler, corporate LLM output, with bilingual support.</div></div>
+                  <div class="translation-block-row"><div class="translation-original">It is not a per-turn workflow skill. It installs a persistent behavior modifier into the workspace.</div></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block" id="translation-2">
+              <h3>它具体做什么</h3>
+              <div class="translation-compare">
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-text">执行后，它会把 `prompt.md` 的内容注入当前工作区的 `AGENTS.md`，并用显式的 BEGIN/END marker 包裹规则块。</div></div>
+                  <div class="translation-block-row"><div class="translation-text">因此它更像一个“行为安装器”，而不是一个逐步执行的分析流程。</div></div>
+                </div>
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-original">It injects the contents of `prompt.md` into the workspace `AGENTS.md`, wrapped by explicit BEGIN/END markers.</div></div>
+                  <div class="translation-block-row"><div class="translation-original">This makes it closer to a behavior installer than a turn-by-turn workflow process.</div></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block" id="translation-3">
+              <h3>如何运行</h3>
+              <div class="translation-compare">
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-text">安装或更新时运行 `bash install.sh`；卸载时运行 `bash install.sh --uninstall`。</div></div>
+                  <div class="translation-block-row"><div class="translation-text">脚本是幂等的：重复执行会先移除旧 block，再写入最新规则。</div></div>
+                </div>
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-original">Run `bash install.sh` to install or update, and `bash install.sh --uninstall` to remove.</div></div>
+                  <div class="translation-block-row"><div class="translation-original">The script is idempotent: it strips the old block before writing the latest rules.</div></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block" id="translation-4">
+              <h3>规则内容</h3>
+              <div class="translation-compare">
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-text">`prompt.md` 里的规则主要用来压缩几类常见废话模式：开场套话、总结式收尾、平衡作文式比较、条件式后续菜单等。</div></div>
+                  <div class="translation-block-row"><div class="translation-text">其中一个关键要求，是直接给正向结论，避免“不是 X，而是 Y”这种修辞框架。</div></div>
+                </div>
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-original">The rules in `prompt.md` target common filler patterns such as openings, summary endings, balanced comparisons, and conditional follow-up menus.</div></div>
+                  <div class="translation-block-row"><div class="translation-original">A core rule is to prefer direct positive conclusions over reject-then-correct phrasing.</div></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block" id="translation-5">
+              <h3>更新、兼容性与验证</h3>
+              <div class="translation-compare">
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-text">更新路径是先 `clawhub update talk-normal`，再重新执行安装脚本。兼容性目标是任何支持 system prompt 或 custom instruction 的模型。</div></div>
+                  <div class="translation-block-row"><div class="translation-text">`TEST_RESULTS.md` 提供 benchmark 数据，用来支撑压缩率和效果声明。</div></div>
+                </div>
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-original">Updating means `clawhub update talk-normal`, then rerunning the installer. Compatibility is broad for models that honor system prompts or custom instructions.</div></div>
+                  <div class="translation-block-row"><div class="translation-original">`TEST_RESULTS.md` contains benchmark evidence backing the reduction claims.</div></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block" id="translation-6">
+              <h3>贡献方式</h3>
+              <div class="translation-compare">
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-text">`CONTRIBUTING.md` 要求新增规则必须基于真实输出中的真实废话模式，而不是纯个人偏好。</div></div>
+                </div>
+                <div class="translation-col">
+                  <div class="translation-block-row"><div class="translation-original">`CONTRIBUTING.md` requires each new rule to be grounded in a real slop pattern from real output, not just personal taste.</div></div>
+                </div>
+              </div>
+            </article>
+          </section>
+        </div>
+
+        <aside class="side-column">
+          <div class="appendix-head">
+            <p class="section-kicker">附录</p>
+          </div>
+          <section class="meta-card" id="references">
+            <h2>引用关系</h2>
+            <div class="meta-stack">
+              <article class="meta-row"><strong>https://github.com/hexiecs/talk-normal</strong><div class="meta-copy">上游仓库主页，用于确认 skill 来源、版本演进和 issue 入口。</div><span class="muted">类型 url</span></article>
+              <article class="meta-row"><strong>install.sh</strong><div class="meta-copy">安装脚本，负责把 `prompt.md` 写入工作区 `AGENTS.md`，并处理 uninstall / update 的幂等逻辑。</div><span class="muted">类型 file</span></article>
+              <article class="meta-row"><strong>prompt.md</strong><div class="meta-copy">核心规则文件，定义 talk-normal 实际施加给 agent 的行为约束。</div><span class="muted">类型 file</span></article>
+              <article class="meta-row"><strong>TEST_RESULTS.md</strong><div class="meta-copy">完整 benchmark 数据源，用于支撑压缩率与效果声明。</div><span class="muted">类型 file</span></article>
+              <article class="meta-row"><strong>CONTRIBUTING.md</strong><div class="meta-copy">贡献说明，定义新增规则的证据要求与提交格式。</div><span class="muted">类型 file</span></article>
+            </div>
+          </section>
+
+          <section class="meta-card" id="safety">
+            <h2>安全评估</h2>
+            <div class="meta-stack">
+              <div class="safety-summary">
+                <strong class="tone-medium">中风险</strong>
+                <div class="meta-copy">中风险表示它会执行 shell 脚本并修改工作区 `AGENTS.md`，但作用范围主要局限于本地文本规则注入，没有直接涉及高权限系统设置。</div>
+              </div>
+              <article class="meta-row">
+                <div class="safety-finding-title">
+                  <strong>shell-installer</strong>
+                  <span class="safety-severity tone-medium">中风险</span>
+                </div>
+                <span class="muted">通过 `bash install.sh` 执行本地脚本，存在脚本执行风险，需要审阅脚本内容。</span>
+                <span class="muted">证据：bash install.sh</span>
+              </article>
+              <article class="meta-row">
+                <div class="safety-finding-title">
+                  <strong>workspace-rule-injection</strong>
+                  <span class="safety-severity tone-medium">中风险</span>
+                </div>
+                <span class="muted">会修改或创建 `AGENTS.md`，属于持久化行为变化，需要明确影响范围和回滚方式。</span>
+                <span class="muted">证据：The contents of `prompt.md` get injected into your `AGENTS.md`.</span>
+              </article>
+            </div>
+          </section>
+
+          <section class="meta-card" id="suggestions">
+            <h2>优化建议</h2>
+            <div class="meta-stack">
+              <article class="meta-row"><strong>补一段安装后验证步骤</strong><span class="muted">建议在 `How to run` 或 `What gets installed` 后面补一句“安装后如何确认已生效”，例如检查 `AGENTS.md` 中的 marker block 是否存在。</span></article>
+              <article class="meta-row"><strong>补一段 uninstall 影响说明</strong><span class="muted">建议明确 uninstall 只删除 marker 包裹的规则块，不会影响其他手写规则，以减少用户对回滚风险的顾虑。</span></article>
+              <article class="meta-row"><strong>压缩 benchmark 摘要的表达</strong><span class="muted">当前 benchmark 信息已经很强，建议把摘要区的效果表达再压短一点，避免和 `TEST_RESULTS.md` 的详表形成重复。</span></article>
+            </div>
+          </section>
+
+          <section class="meta-card" id="install">
+            <h2>安装情况</h2>
+            <div class="status-grid">
+              <div class="status-row"><strong>OpenClaw / AGENTS.md</strong><span class="muted">Installer-based</span></div>
+              <div class="status-row"><strong>Current workspace</strong><span class="muted">未知</span></div>
+            </div>
+          </section>
+
+          <section class="meta-card" id="score">
+            <h2>评分维度</h2>
+            <div class="meta-stack">
+              <div class="score-summary score-summary--excellent">
+                <strong>91 / 100</strong>
+                <div class="meta-copy">安装逻辑和引用链路都比较清晰，当前最主要的提升空间在安装后验证说明和 uninstall 影响解释。</div>
+              </div>
+              <div class="score-row"><div class="score-row-head"><strong class="score-label">触发条件清晰度</strong><span class="score-value">18/20</span></div><div class="score-bar score-bar--strong"><span style="width: 90%"></span></div></div>
+              <div class="score-row"><div class="score-row-head"><strong class="score-label">结构完整性</strong><span class="score-value">19/20</span></div><div class="score-bar score-bar--excellent"><span style="width: 95%"></span></div></div>
+              <div class="score-row"><div class="score-row-head"><strong class="score-label">执行指引清晰度</strong><span class="score-value">19/20</span></div><div class="score-bar score-bar--excellent"><span style="width: 95%"></span></div></div>
+              <div class="score-row"><div class="score-row-head"><strong class="score-label">引用卫生度</strong><span class="score-value">18/20</span></div><div class="score-bar score-bar--strong"><span style="width: 90%"></span></div></div>
+              <div class="score-row"><div class="score-row-head"><strong class="score-label">可维护性</strong><span class="score-value">17/20</span></div><div class="score-bar score-bar--good"><span style="width: 85%"></span></div></div>
+            </div>
+          </section>
+
+          <section class="meta-card" id="source">
+            <h2>来源信息</h2>
+            <div class="source-list">
+              <div class="source-item"><span>原始链接</span><strong>https://github.com/hexiecs/talk-normal/blob/main/skill/SKILL.md</strong></div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <div class="viewer-shell" id="mermaid-viewer" aria-hidden="true">
+      <div class="viewer">
+        <div class="viewer-head">
+          <div><p class="section-kicker">全屏查看</p><h2>执行逻辑流程图</h2></div>
+          <button class="viewer-close" type="button" data-close-viewer="mermaid-viewer">关闭</button>
+        </div>
+        <div class="viewer-body"><div class="graph-shell"><div id="viewer-graph"></div></div></div>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const openButtons = document.querySelectorAll("[data-open-viewer]");
+        const closeButtons = document.querySelectorAll("[data-close-viewer]");
+        const closeViewer = (viewer) => { viewer.classList.remove("is-open"); viewer.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; };
+        const openViewer = (viewer) => { viewer.classList.add("is-open"); viewer.setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden"; };
+        openButtons.forEach((button) => button.addEventListener("click", () => { const viewer = document.getElementById(button.dataset.openViewer); if (viewer) openViewer(viewer); }));
+        closeButtons.forEach((button) => button.addEventListener("click", () => { const viewer = document.getElementById(button.dataset.closeViewer); if (viewer) closeViewer(viewer); }));
+        document.querySelectorAll(".viewer-shell").forEach((viewer) => viewer.addEventListener("click", (event) => { if (event.target === viewer) closeViewer(viewer); }));
+        document.addEventListener("keydown", (event) => { if (event.key === "Escape") document.querySelectorAll(".viewer-shell.is-open").forEach((viewer) => closeViewer(viewer)); });
+      })();
+    </script>
+  </body>
+</html>
