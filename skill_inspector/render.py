@@ -154,6 +154,7 @@ def _nav_items(analysis: dict[str, object]) -> list[dict[str, str]]:
     items.extend(
         [
             {"id": "safety", "label": "安全"},
+            {"id": "suggestions", "label": "建议"},
             {"id": "install", "label": "安装"},
             {"id": "score", "label": "评分"},
             {"id": "source", "label": "来源"},
@@ -168,6 +169,7 @@ def render_report(*, output_dir: Path, source_bundle: dict[str, object], analysi
     analysis.setdefault("install", {})
     analysis.setdefault("score", {"total": 0, "dimensions": {}})
     analysis.setdefault("safety", {"level": "Unknown", "findings": []})
+    analysis.setdefault("suggestions", [])
     analysis.setdefault("translation", {"body_zh": ""})
     analysis.setdefault("summary", {"title": "Untitled Skill", "purpose": ""})
 

@@ -12,6 +12,7 @@ PATH_RE = re.compile(r"`([^`]+\.(?:md|txt|py|sh|json|yaml|yml))`")
 URL_RE = re.compile(r"https?://\S+")
 CONDITION_RE = re.compile(r"\bwhen\b(.+)$", re.IGNORECASE)
 FENCE_RE = re.compile(r"^```(bash|sh|shell|zsh)\s*$", re.IGNORECASE)
+COMMAND_PATH_RE = re.compile(r"(?<![`\\w])((?:\./)?(?:[\w.-]+/)+[\w.-]+\.(?:py|sh|md|txt|json|yaml|yml|html|css|js))(?![`\\w])")
 
 
 def _reference_kind(target: str) -> str:
@@ -72,6 +73,17 @@ def normalize_document(raw_text: str) -> NormalizedDocument:
                     condition=condition,
                 )
             )
+
+        for target in COMMAND_PATH_RE.findall(stripped):
+            if all(reference.target != target for reference in references):
+                references.append(
+                    Reference(
+                        target=target,
+                        kind="file",
+                        line=stripped,
+                        condition=condition,
+                    )
+                )
 
     return NormalizedDocument(
         title=title,

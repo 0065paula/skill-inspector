@@ -40,6 +40,9 @@ def test_render_report_writes_html_json_and_artifacts(tmp_path: Path) -> None:
         "install": {
             "Codex": {"status": "Installed", "checked_paths": ["/Users/example/.codex/skills"], "matches": ["/Users/example/.codex/skills/demo-skill"]},
         },
+        "suggestions": [
+            {"title": "补强引用关系", "detail": "把命令中的脚本路径识别为 reference，避免引用关系为空。"},
+        ],
     }
 
     render_report(output_dir=tmp_path, source_bundle=bundle, analysis=analysis)
@@ -58,6 +61,8 @@ def test_render_report_writes_html_json_and_artifacts(tmp_path: Path) -> None:
     assert "translation-en" in html
     assert "引用关系" in html
     assert "安装情况" in html
+    assert "优化建议" in html
+    assert "补强引用关系" in html
     assert "Input Source" in html
     assert 'gist.github.com/octocat/123.js"></script>' not in html
     assert ".js&quot;&gt;&lt;/script&gt;" not in html

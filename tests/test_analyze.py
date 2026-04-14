@@ -109,3 +109,80 @@ Research the integration path
     analysis = analyze_document(normalize_document(raw))
 
     assert "Research the integration path" in analysis["translation"]["body_zh"]
+
+
+def test_analyze_document_uses_better_translation_for_invocation_label(monkeypatch) -> None:
+    def fake_get(url: str, params: dict[str, str], timeout: int):
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: [[["祈求", params["q"], None, None]]],
+        )
+
+    monkeypatch.setattr("skill_inspector.analyze.requests.get", fake_get)
+
+    raw = """# Skill Inspector
+
+## Invocation
+
+Run:
+"""
+
+    analysis = analyze_document(normalize_document(raw))
+
+    assert "# Skill Inspector" in analysis["translation"]["body_zh"]
+    assert "调用方式" in analysis["translation"]["body_zh"]
+    assert "## 调用方式" in analysis["translation"]["body_zh"]
+    assert "运行：" in analysis["translation"]["body_zh"]
+
+
+def test_analyze_document_generates_optimization_suggestions() -> None:
+    raw = """# Skill Inspector
+
+## Invocation
+
+Run:
+
+```bash
+python scripts/skill_inspector.py --input-file examples/sample_generic_skill.md --output-dir out/sample
+```
+"""
+
+    analysis = analyze_document(normalize_document(raw))
+
+    assert analysis["suggestions"]
+    assert any("引用" in item["title"] or "reference" in item["title"].lower() for item in analysis["suggestions"])
+
+
+def test_analyze_document_polishes_machine_translation_into_product_doc_style(monkeypatch) -> None:
+    translations = {
+        "Analyze one generic skill source at a time and generate a static Chinese-first HTML report plus JSON artifacts.": "一次分析一个通用技能源，并生成静态的中文优先 HTML 报告和 JSON 工件。",
+        "A human provides a skill URL, local path, or full text": "人员提供技能 URL、本地路径或全文",
+        "The task requires understanding how the skill works": "该任务需要了解该技能如何发挥作用",
+    }
+
+    def fake_get(url: str, params: dict[str, str], timeout: int):
+        text = translations.get(params["q"], params["q"])
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: [[[text, params["q"], None, None]]],
+        )
+
+    monkeypatch.setattr("skill_inspector.analyze.requests.get", fake_get)
+
+    raw = """# Skill Inspector
+
+Analyze one generic skill source at a time and generate a static Chinese-first HTML report plus JSON artifacts.
+- A human provides a skill URL, local path, or full text
+- The task requires understanding how the skill works
+"""
+
+    analysis = analyze_document(normalize_document(raw))
+    body = analysis["translation"]["body_zh"]
+
+    assert "一个通用 skill 来源" in body
+    assert "JSON 结果文件" in body
+    assert "用户提供 skill URL、本地路径或全文" in body
+    assert "理解该 skill 的工作机制" in body
+    assert "技能源" not in body
+    assert "人员提供" not in body
+    assert "该技能如何发挥作用" not in body

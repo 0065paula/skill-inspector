@@ -404,6 +404,19 @@
             </div>
           </section>
 
+          <section class="meta-card" id="suggestions">
+            <p class="section-kicker">Meta</p>
+            <h2>优化建议</h2>
+            <div class="meta-stack">
+              {% for item in analysis.suggestions %}
+              <article class="meta-row">
+                <strong>{{ item.title }}</strong>
+                <span class="muted">{{ item.detail }}</span>
+              </article>
+              {% endfor %}
+            </div>
+          </section>
+
           <section class="meta-card" id="score">
             <p class="section-kicker">Meta</p>
             <h2>评分维度</h2>

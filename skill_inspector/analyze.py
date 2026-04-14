@@ -11,6 +11,10 @@ TERM_MAP = {
     "Workflow": "工作流",
     "Steps": "步骤",
     "Reference": "引用",
+    "Overview": "概述",
+    "When to Use": "何时使用",
+    "Invocation": "调用方式",
+    "Run:": "运行：",
 }
 
 SENSITIVE_CREDENTIAL_PATTERNS = [
@@ -31,6 +35,32 @@ def _translate_text(text: str) -> str:
     for source, target in TERM_MAP.items():
         translated = translated.replace(source, target)
     return translated
+
+
+def _polish_technical_chinese(text: str) -> str:
+    replacements = [
+        ("一个通用技能源", "一个通用 skill 来源"),
+        ("通用技能源", "通用 skill 来源"),
+        ("JSON 工件", "JSON 结果文件"),
+        ("人员提供", "用户提供"),
+        ("用户提供skill URL", "用户提供 skill URL"),
+        ("技能 URL", "skill URL"),
+        ("技能链接", "skill 链接"),
+        ("技能文件", "skill 文件"),
+        ("技能内容", "skill 内容"),
+        ("该技能如何发挥作用", "该 skill 的工作机制"),
+        ("了解该技能", "理解该 skill"),
+        ("了解该 skill 的工作机制", "理解该 skill 的工作机制"),
+        ("该技能", "该 skill"),
+        ("这个技能", "这个 skill"),
+    ]
+    polished = text
+    for old, new in replacements:
+        polished = polished.replace(old, new)
+    polished = re.sub(r"(?<=[\u4e00-\u9fff])skill\b", " skill", polished)
+    polished = re.sub(r"\bskill(?=[\u4e00-\u9fff])", "skill ", polished)
+    polished = re.sub(r"[ \t]{2,}", " ", polished)
+    return polished
 
 
 def _contains_cjk(text: str) -> bool:
@@ -60,7 +90,7 @@ def _translate_via_google(text: str) -> str:
         return text
 
 
-def _translate_markdown_line(line: str) -> str:
+def _translate_markdown_line(line: str, *, title_hint: str | None = None) -> str:
     if not line.strip():
         return line
     if line.strip() in {"---", "```", "```bash", "```sh", "```shell", "```zsh"}:
@@ -69,6 +99,13 @@ def _translate_markdown_line(line: str) -> str:
         return _translate_text(line)
     if re.fullmatch(r"[`#>*\-\d.\s]+", line):
         return line
+
+    exact_terms = {
+        "Invocation": "调用方式",
+        "Run:": "运行：",
+        "Overview": "概述",
+        "When to Use": "何时使用",
+    }
 
     patterns = [
         r"^(#{1,6}\s+)(.+)$",
@@ -80,16 +117,41 @@ def _translate_markdown_line(line: str) -> str:
         match = re.match(pattern, line)
         if match:
             prefix, content = match.groups()
+            if title_hint and content == title_hint:
+                return prefix + _translate_text(content)
+            if content in exact_terms:
+                return prefix + exact_terms[content]
             return prefix + _translate_via_google(content)
+    if line in exact_terms:
+        return exact_terms[line]
     return _translate_via_google(line)
 
 
-def _translate_markdown(text: str) -> str:
+def _translate_markdown(text: str, *, title_hint: str | None = None) -> str:
     lines = text.splitlines()
     translated_lines: list[str] = []
     inside_code_fence = False
+    inside_frontmatter = False
     for line in lines:
         stripped = line.strip()
+        if stripped == "---":
+            inside_frontmatter = not inside_frontmatter
+            translated_lines.append(line)
+            continue
+        if inside_frontmatter:
+            metadata_match = re.match(r"^([A-Za-z_][\w-]*):(.*)$", line)
+            if metadata_match:
+                key, value = metadata_match.groups()
+                value = value.strip()
+                if not value:
+                    translated_lines.append(line)
+                elif key in {"description", "summary"}:
+                    translated_lines.append(f"{key}: {_translate_via_google(value)}")
+                else:
+                    translated_lines.append(f"{key}: {value}")
+            else:
+                translated_lines.append(line)
+            continue
         if stripped.startswith("```"):
             inside_code_fence = not inside_code_fence
             translated_lines.append(line)
@@ -97,8 +159,8 @@ def _translate_markdown(text: str) -> str:
         if inside_code_fence:
             translated_lines.append(line)
             continue
-        translated_lines.append(_translate_markdown_line(line))
-    return "\n".join(translated_lines)
+        translated_lines.append(_translate_markdown_line(line, title_hint=title_hint))
+    return _polish_technical_chinese("\n".join(translated_lines))
 
 
 def _has_clear_trigger(document: NormalizedDocument) -> bool:
@@ -201,6 +263,51 @@ def _workflow(document: NormalizedDocument) -> dict[str, object]:
     return {"nodes": nodes, "edges": edges}
 
 
+def _suggestions(document: NormalizedDocument, score: dict[str, object], safety: dict[str, object]) -> list[dict[str, str]]:
+    suggestions: list[dict[str, str]] = []
+
+    if document.commands and not document.references:
+        suggestions.append(
+            {
+                "title": "补强引用关系",
+                "detail": "命令已被识别，但相关脚本或文件路径没有进入引用关系。建议把命令中的脚本路径识别为 reference，并显示触发条件。",
+            }
+        )
+    elif document.commands and any(reference.kind == "file" for reference in document.references):
+        suggestions.append(
+            {
+                "title": "细化命令引用说明",
+                "detail": "已识别到脚本路径引用。建议在报告中进一步标明这些脚本是在什么步骤被调用，以及它们对 skill 行为的作用。",
+            }
+        )
+
+    if score["dimensions"]["reference_hygiene"] < 12:
+        suggestions.append(
+            {
+                "title": "提升引用完整度",
+                "detail": "当前引用关系较少或证据不足。建议显式列出关键文档、脚本、模板和外部链接，避免分析结果把重要依赖遗漏掉。",
+            }
+        )
+
+    if safety["level"] in {"Medium", "High", "Critical"}:
+        suggestions.append(
+            {
+                "title": "补充安全边界说明",
+                "detail": "建议明确区分只读操作、命令执行、联网抓取和全局写入，减少安全等级被动抬高时的歧义。",
+            }
+        )
+
+    if not suggestions:
+        suggestions.append(
+            {
+                "title": "维持当前结构并继续样本回放",
+                "detail": "当前 skill 结构基本清晰。建议继续用更多真实 skill 样本回放，验证翻译、引用和安全判断是否稳定。",
+            }
+        )
+
+    return suggestions
+
+
 def analyze_document(document: NormalizedDocument) -> dict[str, object]:
     skill_name = document.metadata.get("name", "skill-inspector")
     lines = [line for line in document.raw_text.splitlines() if line.strip()]
@@ -208,6 +315,9 @@ def analyze_document(document: NormalizedDocument) -> dict[str, object]:
     if not purpose:
         use_when_line = next((line for line in lines if line.startswith("Use when")), None)
         purpose = use_when_line or document.title
+
+    score = _score_document(document)
+    safety = _safety_level(document)
 
     return {
         "summary": {
@@ -222,7 +332,7 @@ def analyze_document(document: NormalizedDocument) -> dict[str, object]:
         },
         "translation": {
             "title_zh": _translate_text(document.title),
-            "body_zh": _translate_markdown(document.raw_text),
+            "body_zh": _translate_markdown(document.raw_text, title_hint=document.title),
         },
         "references": [
             {
@@ -233,8 +343,9 @@ def analyze_document(document: NormalizedDocument) -> dict[str, object]:
             }
             for reference in document.references
         ],
-        "score": _score_document(document),
-        "safety": _safety_level(document),
+        "score": score,
+        "safety": safety,
+        "suggestions": _suggestions(document, score, safety),
         "workflow": _workflow(document),
         "install": probe_installation(skill_name),
     }

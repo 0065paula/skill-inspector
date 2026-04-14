@@ -23,6 +23,7 @@ description: Use when documenting references
     assert [reference.target for reference in document.references] == [
         "docs/reference.md",
         "https://example.com",
+        "tests/test_demo.py",
     ]
     assert document.references[0].condition == "when the user asks for examples"
     assert document.commands == ["Run: pytest tests/test_demo.py -v"]
@@ -59,4 +60,8 @@ python scripts/run.py --check
     assert document.commands == [
         "curl -s https://example.com",
         "python scripts/run.py --check",
+    ]
+    assert [reference.target for reference in document.references] == [
+        "https://example.com",
+        "scripts/run.py",
     ]
