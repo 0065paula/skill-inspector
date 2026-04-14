@@ -37,6 +37,7 @@ def normalize_document(raw_text: str) -> NormalizedDocument:
 
     for line in body.splitlines():
         stripped = line.strip()
+        command_like = False
 
         if stripped == "```" and inside_shell_fence:
             inside_shell_fence = False
@@ -48,8 +49,10 @@ def normalize_document(raw_text: str) -> NormalizedDocument:
         command_line = stripped[2:].strip() if stripped.startswith("- ") else stripped
         if inside_shell_fence and command_line and not command_line.startswith("#"):
             commands.append(command_line)
+            command_like = True
         elif command_line.startswith(("Run:", "Command:", "$ ")):
             commands.append(command_line)
+            command_like = True
 
         condition_match = CONDITION_RE.search(stripped)
         condition = f"when{condition_match.group(1)}".strip() if condition_match else None
@@ -74,16 +77,17 @@ def normalize_document(raw_text: str) -> NormalizedDocument:
                 )
             )
 
-        for target in COMMAND_PATH_RE.findall(stripped):
-            if all(reference.target != target for reference in references):
-                references.append(
-                    Reference(
-                        target=target,
-                        kind="file",
-                        line=stripped,
-                        condition=condition,
+        if command_like:
+            for target in COMMAND_PATH_RE.findall(command_line):
+                if all(reference.target != target for reference in references):
+                    references.append(
+                        Reference(
+                            target=target,
+                            kind="file",
+                            line=stripped,
+                            condition=condition,
+                        )
                     )
-                )
 
     return NormalizedDocument(
         title=title,

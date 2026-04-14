@@ -43,6 +43,8 @@ def test_cli_can_dump_llm_request_and_consume_response(tmp_path: Path) -> None:
     )
     output_dir = tmp_path / "out"
     request_path = tmp_path / "llm_request.json"
+    template_path = tmp_path / "llm_response.template.json"
+    prompt_path = tmp_path / "llm_prompt.md"
     response_path = tmp_path / "llm_response.json"
 
     prepare = subprocess.run(
@@ -55,6 +57,10 @@ def test_cli_can_dump_llm_request_and_consume_response(tmp_path: Path) -> None:
             str(output_dir),
             "--dump-llm-request",
             str(request_path),
+            "--dump-llm-response-template",
+            str(template_path),
+            "--dump-llm-prompt",
+            str(prompt_path),
         ],
         cwd=Path(__file__).resolve().parents[1],
         capture_output=True,
@@ -63,7 +69,12 @@ def test_cli_can_dump_llm_request_and_consume_response(tmp_path: Path) -> None:
 
     assert prepare.returncode == 0, prepare.stderr
     payload = json.loads(request_path.read_text(encoding="utf-8"))
+    template_payload = json.loads(template_path.read_text(encoding="utf-8"))
+    prompt_text = prompt_path.read_text(encoding="utf-8")
     translation_ids = [item["id"] for item in payload["translation"]["blocks"]]
+    assert set(template_payload["translations"].keys()) == set(translation_ids)
+    assert "请只返回 JSON" in prompt_text
+    assert "--llm-response-file" in prepare.stdout
     response_path.write_text(
         json.dumps(
             {

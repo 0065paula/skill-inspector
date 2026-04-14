@@ -65,3 +65,19 @@ python scripts/run.py --check
         "https://example.com",
         "scripts/run.py",
     ]
+
+
+def test_normalize_document_does_not_slice_backticked_json_paths() -> None:
+    raw = """# Demo Skill
+
+## Agent Bridge
+
+2. Read `out/bridge-request.json`, call the current model, and write `out/bridge-response.json` in this shape:
+"""
+
+    document = normalize_document(raw)
+
+    assert [reference.target for reference in document.references] == [
+        "out/bridge-request.json",
+        "out/bridge-response.json",
+    ]

@@ -34,6 +34,31 @@ Rules:
 """
 
 
+AGENT_BRIDGE_PROMPT_TEMPLATE = """请基于 `llm_request.json` 生成 `llm_response.json`。
+
+要求：
+- 请只返回 JSON，不要输出解释。
+- `translations` 的 key 必须与请求中的 block id 一一对应。
+- 只翻译自然语言内容；命令、路径、URL、代码、frontmatter key 保持原样。
+- 中文风格：精简、高质量、可控，偏产品/技术文档。
+- `suggestions` 保持简短、具体、可执行。
+
+输出 JSON 结构：
+{
+  "translations": {
+    "line-2": "..."
+  },
+  "suggestions": [
+    {
+      "title": "...",
+      "detail": "...",
+      "priority": "high"
+    }
+  ]
+}
+"""
+
+
 class LLMProvider(Protocol):
     def translate_blocks(self, *, title: str, blocks: list[dict[str, str]]) -> dict[str, str]:
         ...
@@ -131,3 +156,17 @@ def load_provider_from_env() -> LLMProvider | None:
     if not command:
         return None
     return CommandJSONProvider(command)
+
+
+def build_response_template(request_payload: dict[str, Any]) -> dict[str, Any]:
+    translation_ids = [item["id"] for item in request_payload.get("translation", {}).get("blocks", [])]
+    return {
+        "translations": {block_id: "" for block_id in translation_ids},
+        "suggestions": [
+            {
+                "title": "",
+                "detail": "",
+                "priority": "high",
+            }
+        ],
+    }
