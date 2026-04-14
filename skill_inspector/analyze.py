@@ -3,6 +3,7 @@ from functools import lru_cache
 
 import requests
 from .install_probe import probe_installation
+from .llm_assist import LLMProvider
 from .models import NormalizedDocument
 
 
@@ -163,6 +164,103 @@ def _translate_markdown(text: str, *, title_hint: str | None = None) -> str:
     return _polish_technical_chinese("\n".join(translated_lines))
 
 
+def _translate_markdown_with_provider(text: str, *, title_hint: str | None, provider: LLMProvider) -> str:
+    lines = text.splitlines()
+    translated_lines: list[str] = []
+    blocks: list[dict[str, str]] = []
+    descriptors: list[dict[str, str]] = []
+    inside_code_fence = False
+    inside_frontmatter = False
+
+    exact_terms = {
+        "Invocation": "调用方式",
+        "Run:": "运行：",
+        "Overview": "概述",
+        "When to Use": "何时使用",
+    }
+
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == "---":
+            inside_frontmatter = not inside_frontmatter
+            descriptors.append({"mode": "literal", "value": line})
+            continue
+        if inside_frontmatter:
+            metadata_match = re.match(r"^([A-Za-z_][\w-]*):(.*)$", line)
+            if metadata_match:
+                key, value = metadata_match.groups()
+                value = value.strip()
+                if not value:
+                    descriptors.append({"mode": "literal", "value": line})
+                elif key in {"description", "summary"}:
+                    block_id = f"line-{index}"
+                    blocks.append({"id": block_id, "section": "frontmatter", "text": value})
+                    descriptors.append({"mode": "frontmatter", "id": block_id, "key": key})
+                else:
+                    descriptors.append({"mode": "literal", "value": f"{key}: {value}"})
+            else:
+                descriptors.append({"mode": "literal", "value": line})
+            continue
+        if stripped.startswith("```"):
+            inside_code_fence = not inside_code_fence
+            descriptors.append({"mode": "literal", "value": line})
+            continue
+        if inside_code_fence or not stripped:
+            descriptors.append({"mode": "literal", "value": line})
+            continue
+        if _contains_cjk(line):
+            descriptors.append({"mode": "literal", "value": _translate_text(line)})
+            continue
+        if re.fullmatch(r"[`#>*\-\d.\s]+", line):
+            descriptors.append({"mode": "literal", "value": line})
+            continue
+
+        patterns = [
+            r"^(#{1,6}\s+)(.+)$",
+            r"^(\s*[-*]\s+)(.+)$",
+            r"^(\s*\d+\.\s+)(.+)$",
+            r"^(\s*>\s+)(.+)$",
+        ]
+        matched = False
+        for pattern in patterns:
+            match = re.match(pattern, line)
+            if match:
+                prefix, content = match.groups()
+                if title_hint and content == title_hint:
+                    descriptors.append({"mode": "literal", "value": prefix + _translate_text(content)})
+                elif content in exact_terms:
+                    descriptors.append({"mode": "literal", "value": prefix + exact_terms[content]})
+                else:
+                    block_id = f"line-{index}"
+                    blocks.append({"id": block_id, "section": "markdown", "text": content})
+                    descriptors.append({"mode": "prefixed", "id": block_id, "prefix": prefix})
+                matched = True
+                break
+        if matched:
+            continue
+        if line in exact_terms:
+            descriptors.append({"mode": "literal", "value": exact_terms[line]})
+            continue
+        block_id = f"line-{index}"
+        blocks.append({"id": block_id, "section": "paragraph", "text": line})
+        descriptors.append({"mode": "block", "id": block_id})
+
+    translated_map = provider.translate_blocks(title=title_hint or "Skill Document", blocks=blocks) if blocks else {}
+
+    for descriptor in descriptors:
+        mode = descriptor["mode"]
+        if mode == "literal":
+            translated_lines.append(descriptor["value"])
+        elif mode == "frontmatter":
+            translated_lines.append(f"{descriptor['key']}: {translated_map.get(descriptor['id'], '')}")
+        elif mode == "prefixed":
+            translated_lines.append(f"{descriptor['prefix']}{translated_map.get(descriptor['id'], '')}")
+        elif mode == "block":
+            translated_lines.append(translated_map.get(descriptor["id"], ""))
+
+    return _polish_technical_chinese("\n".join(translated_lines))
+
+
 def _has_clear_trigger(document: NormalizedDocument) -> bool:
     trigger_text = "\n".join(
         [
@@ -308,7 +406,36 @@ def _suggestions(document: NormalizedDocument, score: dict[str, object], safety:
     return suggestions
 
 
-def analyze_document(document: NormalizedDocument) -> dict[str, object]:
+def _provider_suggestions(
+    provider: LLMProvider,
+    *,
+    title: str,
+    summary: str,
+    sections: list[str],
+    references: list[dict[str, str]],
+    commands: list[str],
+    score: dict[str, object],
+    safety: dict[str, object],
+) -> list[dict[str, str]] | None:
+    try:
+        data = provider.generate_insights(
+            title=title,
+            summary=summary,
+            sections=sections,
+            references=references,
+            commands=commands,
+            score=score,
+            safety=safety,
+        )
+    except Exception:
+        return None
+    suggestions = data.get("suggestions")
+    if isinstance(suggestions, list) and suggestions:
+        return suggestions
+    return None
+
+
+def analyze_document(document: NormalizedDocument, llm_provider: LLMProvider | None = None) -> dict[str, object]:
     skill_name = document.metadata.get("name", "skill-inspector")
     lines = [line for line in document.raw_text.splitlines() if line.strip()]
     purpose = document.metadata.get("description")
@@ -318,6 +445,36 @@ def analyze_document(document: NormalizedDocument) -> dict[str, object]:
 
     score = _score_document(document)
     safety = _safety_level(document)
+    references = [
+        {
+            "target": reference.target,
+            "kind": reference.kind,
+            "condition": reference.condition,
+            "line": reference.line,
+        }
+        for reference in document.references
+    ]
+    translation_body = (
+        _translate_markdown_with_provider(document.raw_text, title_hint=document.title, provider=llm_provider)
+        if llm_provider is not None
+        else _translate_markdown(document.raw_text, title_hint=document.title)
+    )
+    suggestions = (
+        _provider_suggestions(
+            llm_provider,
+            title=document.title,
+            summary=_translate_text(purpose),
+            sections=[section["title"] for section in document.sections],
+            references=references,
+            commands=document.commands,
+            score=score,
+            safety=safety,
+        )
+        if llm_provider is not None
+        else None
+    )
+    if suggestions is None:
+        suggestions = _suggestions(document, score, safety)
 
     return {
         "summary": {
@@ -332,20 +489,12 @@ def analyze_document(document: NormalizedDocument) -> dict[str, object]:
         },
         "translation": {
             "title_zh": _translate_text(document.title),
-            "body_zh": _translate_markdown(document.raw_text, title_hint=document.title),
+            "body_zh": translation_body,
         },
-        "references": [
-            {
-                "target": reference.target,
-                "kind": reference.kind,
-                "condition": reference.condition,
-                "line": reference.line,
-            }
-            for reference in document.references
-        ],
+        "references": references,
         "score": score,
         "safety": safety,
-        "suggestions": _suggestions(document, score, safety),
+        "suggestions": suggestions,
         "workflow": _workflow(document),
         "install": probe_installation(skill_name),
     }

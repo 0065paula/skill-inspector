@@ -153,6 +153,54 @@ python scripts/skill_inspector.py --input-file examples/sample_generic_skill.md 
     assert any("引用" in item["title"] or "reference" in item["title"].lower() for item in analysis["suggestions"])
 
 
+class StubProvider:
+    def translate_blocks(self, *, title: str, blocks: list[dict[str, str]]) -> dict[str, str]:
+        return {block["id"]: f"LLM:{block['text']}" for block in blocks}
+
+    def generate_insights(self, **kwargs):
+        return {
+            "suggestions": [
+                {"title": "LLM 建议", "detail": "由 provider 生成的建议。", "priority": "high"},
+            ]
+        }
+
+
+def test_analyze_document_uses_llm_provider_for_translation_and_suggestions() -> None:
+    raw = """# Skill Inspector
+
+## Overview
+
+Analyze one generic skill source at a time.
+"""
+
+    analysis = analyze_document(normalize_document(raw), llm_provider=StubProvider())
+
+    assert "LLM:Analyze one generic skill source at a time." in analysis["translation"]["body_zh"]
+    assert analysis["suggestions"][0]["title"] == "LLM 建议"
+
+
+class FailingProvider:
+    def translate_blocks(self, *, title: str, blocks: list[dict[str, str]]) -> dict[str, str]:
+        raise RuntimeError("provider unavailable")
+
+    def generate_insights(self, **kwargs):
+        raise RuntimeError("provider unavailable")
+
+
+def test_analyze_document_falls_back_when_llm_provider_fails() -> None:
+    raw = """# Skill Inspector
+
+## Invocation
+
+Run:
+"""
+
+    analysis = analyze_document(normalize_document(raw), llm_provider=FailingProvider())
+
+    assert "调用方式" in analysis["translation"]["body_zh"]
+    assert analysis["suggestions"]
+
+
 def test_analyze_document_polishes_machine_translation_into_product_doc_style(monkeypatch) -> None:
     translations = {
         "Analyze one generic skill source at a time and generate a static Chinese-first HTML report plus JSON artifacts.": "一次分析一个通用技能源，并生成静态的中文优先 HTML 报告和 JSON 工件。",
