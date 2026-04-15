@@ -36,6 +36,22 @@ Extract:
 - URL references
 - workflow signals
 
+Normalization output should stay compact:
+
+- Build a small normalized working set before drafting the final report
+- Keep only frontmatter, section headings, commands, file references, URL references, workflow steps, and evidence snippets
+- Collect line-numbered evidence only for items that appear in `references`, `safety.findings`, or other report fields that require proof
+- When available, use `scripts/normalize-skill.mjs` to produce the compact working set before drafting `report.json`
+- Prefer `normalized-source.json.reportSeeds` for deterministic fields such as `summary`, `workflow`, `references`, `translation.mode`, and `source`
+
+Remote link handling:
+
+- When the input is a GitHub file URL in the form `https://github.com/<owner>/<repo>/blob/<branch>/<path>`, rewrite it to `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>` first
+- Fetch the raw URL first when the source is a GitHub file link
+- Continue with the raw response when it returns the actual Markdown source
+- Fall back to the original GitHub page only when the raw URL returns a non-success response, empty body, or HTML page content
+- Keep `source.primary_value` as the original user-provided GitHub URL for traceability
+
 Do not generate the final report yet.
 
 ### Step 2: Produce structured JSON first
@@ -56,6 +72,19 @@ The JSON must include, at minimum:
 - `suggestions`
 - `source`
 
+Workflow rules:
+
+- Use structured workflow data as the canonical representation
+- Fill `workflow.nodes` and `workflow.edges`
+- Keep `workflow.caption` short and focused on execution logic
+- Let the local renderer derive Mermaid from the workflow structure
+
+Translation rules for report size:
+
+- Use `translation.mode` to control verbosity
+- Prefer `compact` for routine inspections
+- Use `full` only when side-by-side translation of most sections materially helps the reader
+
 Do not skip this step.
 
 ### Step 3: Fill the HTML template
@@ -66,6 +95,7 @@ Use:
 
 Rules:
 
+- The local renderer should fill the HTML template from `report.json`
 - Preserve the template structure
 - Fill placeholders only
 - Keep the workflow diagram as the primary section
@@ -80,6 +110,18 @@ Write:
 
 - `out/report.json`
 - `out/report.html`
+
+Optional preprocessing helper:
+
+- `node scripts/normalize-skill.mjs <input> out/normalized-source.json`
+- Use the generated normalized JSON as the primary working context for extraction-heavy tasks
+- Reuse `reportSeeds` first, then spend model work on `translation.sections`, `safety`, `score`, and `suggestions`
+- `node scripts/build-report-draft.mjs out/normalized-source.json out/report.draft.json`
+- Use the generated draft report as the starting point for the final `report.json`
+- `node scripts/build-report-overlay-template.mjs out/report.draft.json out/report.overlay.template.json`
+- Use the overlay template as the preferred model input shape for judgment-heavy fields
+- Let the model write a small `report.overlay.json` that focuses on judgment-heavy fields
+- `node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json out/report.json`
 
 ## Translation Rules
 
@@ -115,10 +157,12 @@ Reference presentation rules:
 ## Output Constraints
 
 - Generate JSON first
+- Treat `report.json` as the only canonical analysis output
 - HTML must reflect the JSON, not a separate interpretation
 - Do not invent sections that are unsupported by the source
 - Do not translate commands, code, paths, URLs, or frontmatter keys
 - Deduplicate repeated references while preserving the most useful evidence line
+- Prefer compact translation and compact evidence selection when they preserve meaning
 - Always provide at least one concrete suggestion
 - Always provide an `install` result, even when it is heuristic or `unknown`
 - When HTML includes embedded JSON for client-side rendering, verify the generated payload can be parsed successfully rather than assuming escaped text will work

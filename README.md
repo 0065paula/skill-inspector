@@ -31,10 +31,10 @@
    提取标题、frontmatter、章节、命令、文件引用、URL 引用和 workflow 信号。
 
 2. 工作流整理
-   把 skill 的执行逻辑整理成结构化 workflow，并在 HTML 中展示 Mermaid 图。
+   把 skill 的执行逻辑整理成结构化 workflow，再由本地渲染器生成 Mermaid 图。
 
 3. 中文优先说明
-   翻译自然语言内容，保留命令、路径、URL、变量名和 frontmatter key 的英文形式。
+   翻译自然语言内容，保留命令、路径、URL、变量名和 frontmatter key 的英文形式，并支持 `compact` 与 `full` 两种模式。
 
 4. 安全信号识别
    识别命令执行、联网、外部依赖和潜在风险，输出安全结论。
@@ -58,15 +58,42 @@
 流程分四步：
 
 1. 读取并整理原始 skill
-2. 按 [`templates/report.schema.json`](./templates/report.schema.json) 生成 `report.json`
-3. 用 [`templates/report.html`](./templates/report.html) 渲染 `report.html`
-4. 把结果写入 `out/`
+2. 先整理一份紧凑的归一化结果，只保留章节、命令、引用、工作流和证据片段
+3. 按 [`templates/report.schema.json`](./templates/report.schema.json) 生成 `report.json`
+4. 用 [`scripts/render-report.mjs`](./scripts/render-report.mjs) 和 [`templates/report.html`](./templates/report.html) 渲染 `report.html`
+5. 把结果写入 `out/`
+
+推荐先跑一遍预处理：
+
+```bash
+node scripts/normalize-skill.mjs <skill-file-or-url> out/normalized-source.json
+node scripts/build-report-draft.mjs out/normalized-source.json out/report.draft.json
+node scripts/build-report-overlay-template.mjs out/report.draft.json out/report.overlay.template.json
+node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json out/report.json
+```
+
+第一步产出的 `normalized-source.json` 适合给 agent 当主上下文，能减少重复读取原文带来的 token 开销。
+第二步产出的 `report.draft.json` 适合当最终报告的起点。
+第三步产出的 `report.overlay.template.json` 给 agent 一个稳定的小输入形状。
+第四步把 `report.overlay.json` 合并进草稿，生成最终 `report.json`。
+
+它现在还会额外生成 `reportSeeds`，里面预填了这些适合机械抽取的字段：
+
+- `summary`
+- `workflow`
+- `references`
+- `translation.mode`
+- `source`
+
+后续分析只需要在这些基础上补 `translation.sections`、`safety`、`score` 和 `suggestions`。
 
 输出规则很明确：
 
 - 先生成 JSON，再生成 HTML
 - HTML 与 JSON 保持一致
+- `report.json` 是唯一分析真源
 - `references` 去重
+- 证据行按需补充
 - `suggestions` 至少包含一条具体建议
 - `install` 始终存在
 
@@ -88,6 +115,11 @@
 - [`prompts/translation.md`](./prompts/translation.md)：翻译规则
 - [`prompts/insights.md`](./prompts/insights.md)：建议、评分和安全表达规则
 - [`scripts/render-report.mjs`](./scripts/render-report.mjs)：JSON 到 HTML 的渲染脚本
+- [`scripts/normalize-skill.mjs`](./scripts/normalize-skill.mjs)：远程抓取和紧凑归一化脚本
+- [`scripts/build-report-draft.mjs`](./scripts/build-report-draft.mjs)：从归一化结果生成报告草稿
+- [`scripts/build-report-overlay-template.mjs`](./scripts/build-report-overlay-template.mjs)：生成判断型 overlay 模板
+- [`scripts/finalize-report.mjs`](./scripts/finalize-report.mjs)：把报告草稿和分析补丁合并成最终报告
+- [`templates/report.overlay.example.json`](./templates/report.overlay.example.json)：overlay 示例
 
 ### 项目结构
 
@@ -129,10 +161,10 @@ When you inherit an unfamiliar skill, you usually need answers to five questions
    Extracts the title, frontmatter, sections, commands, file references, URL references, and workflow signals.
 
 2. Workflow mapping
-   Organizes execution logic into structured workflow data and renders Mermaid in HTML.
+   Organizes execution logic into structured workflow data and lets the local renderer produce Mermaid in HTML.
 
 3. Chinese-first explanation
-   Translates natural-language content while preserving commands, paths, URLs, variables, and frontmatter keys in English.
+   Translates natural-language content while preserving commands, paths, URLs, variables, and frontmatter keys in English, with `compact` and `full` modes.
 
 4. Safety review
    Surfaces command execution, network activity, external dependencies, and risk signals.
@@ -156,15 +188,42 @@ One run handles one source. Supported inputs:
 The workflow has four steps:
 
 1. Read and normalize the source
-2. Generate `report.json` from [`templates/report.schema.json`](./templates/report.schema.json)
-3. Render `report.html` with [`templates/report.html`](./templates/report.html)
-4. Write outputs into `out/`
+2. Build a compact normalized working set with headings, commands, references, workflow steps, and evidence snippets
+3. Generate `report.json` from [`templates/report.schema.json`](./templates/report.schema.json)
+4. Render `report.html` with [`scripts/render-report.mjs`](./scripts/render-report.mjs) and [`templates/report.html`](./templates/report.html)
+5. Write outputs into `out/`
+
+Recommended preprocessing step:
+
+```bash
+node scripts/normalize-skill.mjs <skill-file-or-url> out/normalized-source.json
+node scripts/build-report-draft.mjs out/normalized-source.json out/report.draft.json
+node scripts/build-report-overlay-template.mjs out/report.draft.json out/report.overlay.template.json
+node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json out/report.json
+```
+
+`normalized-source.json` gives the agent a smaller working context and cuts repeated source reads.
+`report.draft.json` provides a schema-shaped starting point for the final report.
+`report.overlay.template.json` gives the model a stable template for judgment-heavy fields.
+`report.overlay.json` stays small and focuses model effort before producing the final `report.json`.
+
+It also includes `reportSeeds` for deterministic fields:
+
+- `summary`
+- `workflow`
+- `references`
+- `translation.mode`
+- `source`
+
+That lets the agent focus on `translation.sections`, `safety`, `score`, and `suggestions`.
 
 The output contract stays simple:
 
 - JSON comes first
 - HTML matches the JSON
+- `report.json` is the canonical analysis output
 - `references` are deduplicated
+- evidence lines are added only where proof matters
 - `suggestions` includes at least one concrete recommendation
 - `install` is always present
 
@@ -186,6 +245,11 @@ This skill fits teams and agents that need to:
 - [`prompts/translation.md`](./prompts/translation.md): translation rules
 - [`prompts/insights.md`](./prompts/insights.md): scoring, recommendation, and safety-writing rules
 - [`scripts/render-report.mjs`](./scripts/render-report.mjs): JSON-to-HTML renderer
+- [`scripts/normalize-skill.mjs`](./scripts/normalize-skill.mjs): remote fetch and compact normalization helper
+- [`scripts/build-report-draft.mjs`](./scripts/build-report-draft.mjs): draft report generator from normalized data
+- [`scripts/build-report-overlay-template.mjs`](./scripts/build-report-overlay-template.mjs): overlay template generator
+- [`scripts/finalize-report.mjs`](./scripts/finalize-report.mjs): final report merger and shape validator
+- [`templates/report.overlay.example.json`](./templates/report.overlay.example.json): example overlay payload
 
 ### Project Shape
 

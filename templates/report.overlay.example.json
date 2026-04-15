@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "score_total": 88,
+    "risk_level": "低风险"
+  },
+  "translation": {
+    "sections": [
+      {
+        "title_zh": "概述",
+        "title_en": "Overview",
+        "rows": [
+          {
+            "zh": "一次分析一个 skill 来源，并生成结构化报告与可读报告。",
+            "en": "Analyze one skill source and generate a structured report plus a readable report."
+          }
+        ]
+      }
+    ]
+  },
+  "safety": {
+    "level_code": "low",
+    "level_label": "低风险",
+    "level_summary": "主要动作集中在本地分析与结构化输出，风险边界清楚。",
+    "findings": [
+      {
+        "signal": "local-processing",
+        "severity": "low",
+        "meaning": "主要处理本地内容与报告文件。",
+        "evidence": "Reads one source and writes report artifacts."
+      }
+    ]
+  },
+  "install": {
+    "items": [
+      {
+        "platform": "Codex",
+        "status": "未知",
+        "note": "需要结合实际安装目录判断。"
+      }
+    ]
+  },
+  "score": {
+    "dimensions": [
+      {
+        "name": "workflow_clarity",
+        "value": 18,
+        "rationale": "执行路径清楚，结构稳定。"
+      }
+    ]
+  },
+  "suggestions": [
+    {
+      "title": "补充失败路径",
+      "detail": "为关键步骤补充失败处理和回退说明。",
+      "priority": "medium"
+    }
+  ]
+}

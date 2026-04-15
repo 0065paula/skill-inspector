@@ -26,16 +26,45 @@
     },
     "workflow": {
       "type": "object",
-      "required": ["mermaid", "caption"],
+      "required": ["caption", "nodes", "edges"],
       "properties": {
         "mermaid": { "type": "string" },
         "caption": { "type": "string" }
+        ,
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "kind": { "type": "string" }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "label": { "type": "string" }
+            }
+          }
+        }
       }
     },
     "translation": {
       "type": "object",
-      "required": ["sections"],
+      "required": ["mode", "sections"],
       "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["compact", "full"]
+        },
         "sections": {
           "type": "array",
           "items": {
