@@ -72,6 +72,7 @@ Rules:
 - Keep translation as the secondary section
 - Keep meta sections compact
 - Keep the install section visible in the meta area
+- If embedding Mermaid or other JSON payloads inside `<script type="application/json">`, do not use HTML entity escaping for the JSON body; keep it `JSON.parse`-compatible and only escape script-context hazards such as `<`, `>`, `&`, or `</script>`
 
 ### Step 4: Write outputs
 
@@ -120,3 +121,4 @@ Reference presentation rules:
 - Deduplicate repeated references while preserving the most useful evidence line
 - Always provide at least one concrete suggestion
 - Always provide an `install` result, even when it is heuristic or `unknown`
+- When HTML includes embedded JSON for client-side rendering, verify the generated payload can be parsed successfully rather than assuming escaped text will work
