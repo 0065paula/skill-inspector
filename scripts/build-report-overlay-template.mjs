@@ -12,7 +12,7 @@ export const buildReportOverlayTemplate = (draft) => ({
     edges: []
   },
   translation: {
-    coverage: 'full',
+    coverage: 'full_human',
     sections: []
   },
   safety: {

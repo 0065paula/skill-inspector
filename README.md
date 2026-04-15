@@ -89,6 +89,12 @@ node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json o
 
 后续分析只需要在这些基础上补 `translation.sections`、`safety`、`score` 和 `suggestions`。
 
+翻译层现在支持三种覆盖策略：
+
+- `full_auto`：直接复用 draft 里的英文 section 骨架
+- `full_human`：overlay 只补中文 `zh`，英文 `en` 从 draft 继承
+- `full_override`：只有 draft 切块明显不对时，才在 overlay 里同时重写 `zh + en`
+
 输出规则很明确：
 
 - 先生成 JSON，再生成 HTML
@@ -221,6 +227,12 @@ It also includes `reportSeeds` for deterministic fields:
 - `source`
 
 That lets the agent focus on `translation.sections`, `safety`, `score`, and `suggestions`.
+
+Translation now supports three coverage modes:
+
+- `full_auto`: reuse the draft's English section skeleton
+- `full_human`: let the overlay provide only Chinese `zh` while keeping English `en` from the draft
+- `full_override`: rewrite both `zh` and `en` only when the draft segmentation is insufficient
 
 The output contract stays simple:
 

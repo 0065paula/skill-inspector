@@ -178,3 +178,62 @@ test('finalize-report CLI writes the merged final report', () => {
   assert.equal(output.translation.sections.length, 1);
   assert.equal(output.safety.level_code, 'low');
 });
+
+test('finalizeReport supports full_human translation overlays that reuse draft english sections', () => {
+  const humanDraft = {
+    ...draft,
+    translation: {
+      mode: 'full',
+      sections: [
+        {
+          title_zh: '',
+          title_en: 'Overview',
+          rows: [
+            { zh: '', en: 'Analyze one skill source.' },
+            { zh: '', en: 'Generate a report.' }
+          ]
+        },
+        {
+          title_zh: '',
+          title_en: 'Workflow',
+          rows: [
+            { zh: '', en: 'Read source.' }
+          ]
+        }
+      ]
+    }
+  };
+
+  const overlay = {
+    translation: {
+      coverage: 'full_human',
+      sections: [
+        {
+          title_zh: '概述',
+          title_en: 'Overview',
+          rows: [
+            { zh: '分析一个 skill 来源。' },
+            { zh: '生成一份报告。' }
+          ]
+        },
+        {
+          title_zh: '流程',
+          title_en: 'Workflow',
+          rows: [
+            { zh: '读取来源。' }
+          ]
+        }
+      ]
+    }
+  };
+
+  const result = finalizeReport(humanDraft, overlay);
+
+  assert.equal(result.translation.mode, 'full');
+  assert.equal(result.translation.sections[0].title_en, 'Overview');
+  assert.equal(result.translation.sections[0].title_zh, '概述');
+  assert.equal(result.translation.sections[0].rows[0].en, 'Analyze one skill source.');
+  assert.equal(result.translation.sections[0].rows[0].zh, '分析一个 skill 来源。');
+  assert.equal(result.translation.sections[1].rows[0].en, 'Read source.');
+  assert.equal(result.translation.sections[1].rows[0].zh, '读取来源。');
+});

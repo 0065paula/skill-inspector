@@ -6,7 +6,8 @@ import path from 'node:path';
 import {
   normalizeSkillMarkdown,
   readRemoteSkillSource,
-  rewriteGitHubBlobToRaw
+  rewriteGitHubBlobToRaw,
+  rewriteGitLabBlobToRaw
 } from '../scripts/normalize-skill.mjs';
 
 const root = process.cwd();
@@ -70,6 +71,33 @@ description: Use when staged reporting needs serial steps
 - Run \`node scripts/build-report-draft.mjs out/normalized-source.json out/report.draft.json\`
 `;
 
+const urlReferenceSource = `---
+name: url-reference-skill
+description: Use when explicit references should be extracted
+---
+
+# URL Reference Skill
+
+## References
+
+- [Spec](https://jsoncanvas.org/spec/1.0/)
+- [Repo](https://github.com/obsidianmd/jsoncanvas)
+
+## Example Prompts
+
+- "Review this implementation against https://example.com/design and compare it with http://internal.example.com/page"
+`;
+
+const bareFileReferenceSource = `---
+name: bare-file-skill
+description: Use when bare file names should still count as references
+---
+
+# Bare File Skill
+
+Use the reviewer prompt in \`design-reviewer.md\`.
+`;
+
 test('rewriteGitHubBlobToRaw converts github blob URLs to raw URLs', () => {
   const input = 'https://github.com/kepano/obsidian-skills/blob/main/skills/json-canvas/SKILL.md';
   const output = rewriteGitHubBlobToRaw(input);
@@ -77,6 +105,16 @@ test('rewriteGitHubBlobToRaw converts github blob URLs to raw URLs', () => {
   assert.equal(
     output,
     'https://raw.githubusercontent.com/kepano/obsidian-skills/main/skills/json-canvas/SKILL.md'
+  );
+});
+
+test('rewriteGitLabBlobToRaw converts gitlab blob URLs to raw URLs', () => {
+  const input = 'http://gitlab.smartx.com/frontend/claude-code-doc/-/blob/main/skills/figma-design-review/SKILL.md';
+  const output = rewriteGitLabBlobToRaw(input);
+
+  assert.equal(
+    output,
+    'http://gitlab.smartx.com/frontend/claude-code-doc/-/raw/main/skills/figma-design-review/SKILL.md'
   );
 });
 
@@ -106,7 +144,7 @@ test('readRemoteSkillSource falls back to the original GitHub URL when raw retur
   assert.equal(calls[1], input);
   assert.equal(result.text, '# JSON Canvas Skill\n');
   assert.equal(result.resolvedUrl, input);
-  assert.equal(result.strategy, 'github-page-fallback');
+  assert.equal(result.strategy, 'page-fallback');
 });
 
 test('normalizeSkillMarkdown returns a compact working set', () => {
@@ -126,8 +164,7 @@ test('normalizeSkillMarkdown returns a compact working set', () => {
   assert.match(normalized.commands[0].code, /python scripts\/run_example\.py --check/);
   assert.deepEqual(normalized.fileReferences.map((item) => item.target), ['docs/reference.md']);
   assert.equal(normalized.fileReferences[0].line, 10);
-  assert.deepEqual(normalized.urlReferences.map((item) => item.target), ['https://example.com']);
-  assert.equal(normalized.urlReferences[0].line, 11);
+  assert.deepEqual(normalized.urlReferences.map((item) => item.target), []);
   assert.deepEqual(normalized.workflowSteps.map((item) => item.text), [
     'Read `docs/reference.md` when examples are requested',
     'Visit https://example.com when local documentation is unavailable',
@@ -139,7 +176,7 @@ test('normalizeSkillMarkdown returns a compact working set', () => {
     'Use when a simple workflow needs examples'
   );
   assert.equal(normalized.reportSeeds.translation.mode, 'full');
-  assert.equal(normalized.reportSeeds.references.length, 2);
+  assert.equal(normalized.reportSeeds.references.length, 1);
   assert.deepEqual(
     normalized.reportSeeds.workflow.nodes.map((item) => item.id),
     ['step_1', 'step_2', 'step_3']
@@ -274,5 +311,32 @@ test('normalizeSkillMarkdown excludes placeholder URLs, script tags, and command
   assert.deepEqual(
     normalized.urlReferences.map((item) => item.target),
     []
+  );
+});
+
+test('normalizeSkillMarkdown only extracts explicit markdown-link URLs, not example bare URLs', () => {
+  const normalized = normalizeSkillMarkdown(urlReferenceSource, {
+    originalSource: 'url-source.md',
+    resolvedSource: 'url-source.md'
+  });
+
+  assert.deepEqual(
+    normalized.urlReferences.map((item) => item.target),
+    [
+      'https://jsoncanvas.org/spec/1.0/',
+      'https://github.com/obsidianmd/jsoncanvas'
+    ]
+  );
+});
+
+test('normalizeSkillMarkdown extracts bare markdown file names used as references', () => {
+  const normalized = normalizeSkillMarkdown(bareFileReferenceSource, {
+    originalSource: 'bare-file-source.md',
+    resolvedSource: 'bare-file-source.md'
+  });
+
+  assert.deepEqual(
+    normalized.fileReferences.map((item) => item.target),
+    ['design-reviewer.md']
   );
 });

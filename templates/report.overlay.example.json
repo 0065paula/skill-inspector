@@ -3,15 +3,20 @@
     "score_total": 88,
     "risk_level": "低风险"
   },
+  "workflow": {
+    "caption": "主流程围绕分析、评审和输出展开。",
+    "nodes": [],
+    "edges": []
+  },
   "translation": {
+    "coverage": "full_human",
     "sections": [
       {
         "title_zh": "概述",
         "title_en": "Overview",
         "rows": [
           {
-            "zh": "一次分析一个 skill 来源，并生成结构化报告与可读报告。",
-            "en": "Analyze one skill source and generate a structured report plus a readable report."
+            "zh": "一次分析一个 skill 来源，并生成结构化报告与可读报告。"
           }
         ]
       }

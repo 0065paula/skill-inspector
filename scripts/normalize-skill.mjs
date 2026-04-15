@@ -3,6 +3,8 @@ import path from 'node:path';
 
 const GITHUB_BLOB_RE =
   /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/;
+const GITLAB_BLOB_RE =
+  /^(https?:\/\/[^/]+\/.+)\/-\/blob\/([^/]+)\/(.+)$/;
 
 export const rewriteGitHubBlobToRaw = (input) => {
   const match = String(input).match(GITHUB_BLOB_RE);
@@ -10,6 +12,14 @@ export const rewriteGitHubBlobToRaw = (input) => {
 
   const [, owner, repo, branch, filePath] = match;
   return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filePath}`;
+};
+
+export const rewriteGitLabBlobToRaw = (input) => {
+  const match = String(input).match(GITLAB_BLOB_RE);
+  if (!match) return input;
+
+  const [, projectRoot, branch, filePath] = match;
+  return `${projectRoot}/-/raw/${branch}/${filePath}`;
 };
 
 const isLikelyHtml = (text) => /^\s*<!doctype html|^\s*<html[\s>]/i.test(text);
@@ -338,6 +348,47 @@ const extractWorkflowSteps = (lines, headings) => {
   return steps;
 };
 
+const extractTranslationSections = (lines, headings) => {
+  const sections = [];
+
+  for (const heading of headings.filter((item) => item.level >= 2)) {
+    const endLine =
+      headings.find((item) => item.line > heading.line && item.level <= heading.level)?.line - 1 || lines.length;
+    const rows = [];
+    let inFence = false;
+
+    for (let index = heading.line; index < endLine; index += 1) {
+      const line = lines[index];
+      if (/^```/.test(line.trim())) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
+      if (!line.trim()) continue;
+      if (/^\|(?:[-:\s|]+)\|?$/.test(line.trim())) continue;
+
+      const cleaned = line
+        .replace(/^\s*(?:[-*]|\d+\.)\s+/, '')
+        .trim();
+
+      if (!cleaned) continue;
+
+      rows.push({
+        zh: '',
+        en: cleaned
+      });
+    }
+
+    sections.push({
+      title_zh: '',
+      title_en: heading.text,
+      rows
+    });
+  }
+
+  return sections;
+};
+
 const extractWorkflowSections = (lines, headings) => {
   const workflowParents = headings.filter((item) => item.level > 1 && /workflow/i.test(item.text));
   const sections = [];
@@ -390,7 +441,8 @@ const extractWorkflowSections = (lines, headings) => {
 const extractFileReferences = (lines) => {
   const matches = [];
   const mdLinkRe = /\[[^\]]+\]\((?!https?:\/\/)([^)]+)\)/g;
-  const codePathRe = /`([^\s`\n]*\/[^\s`\n]+)`/g;
+  const codePathRe = /`([A-Za-z0-9._~/-]*\/[A-Za-z0-9._~/-]+)`/g;
+  const codeFileRe = /`([A-Za-z0-9._-]+\.(?:md|json|html|py|mjs|js|sh))`/g;
 
   lines.forEach((line, index) => {
     for (const match of line.matchAll(mdLinkRe)) {
@@ -401,6 +453,10 @@ const extractFileReferences = (lines) => {
       if (!shouldKeepFileReference(match[1])) continue;
       matches.push({ target: match[1], line: index + 1, evidence: line.trim() });
     }
+    for (const match of line.matchAll(codeFileRe)) {
+      if (!shouldKeepFileReference(match[1])) continue;
+      matches.push({ target: match[1], line: index + 1, evidence: line.trim() });
+    }
   });
 
   return uniqueByTarget(matches);
@@ -408,12 +464,12 @@ const extractFileReferences = (lines) => {
 
 const extractUrlReferences = (lines) => {
   const matches = [];
-  const urlRe = /https?:\/\/[^\s)<>"`]+/g;
+  const mdUrlLinkRe = /\[[^\]]+\]\((https?:\/\/[^)\s]+)\)/g;
 
   lines.forEach((line, index) => {
-    for (const match of line.matchAll(urlRe)) {
-      if (!shouldKeepUrlReference(match[0], line)) continue;
-      matches.push({ target: match[0], line: index + 1, evidence: line.trim() });
+    for (const match of line.matchAll(mdUrlLinkRe)) {
+      if (!shouldKeepUrlReference(match[1], line)) continue;
+      matches.push({ target: match[1], line: index + 1, evidence: line.trim() });
     }
   });
 
@@ -427,6 +483,7 @@ export const normalizeSkillMarkdown = (markdown, source = {}) => {
   const commands = extractCommands(lines);
   const workflowSteps = extractWorkflowSteps(lines, headings);
   const workflowSections = extractWorkflowSections(lines, headings);
+  const translationSections = extractTranslationSections(lines, headings);
   const fileReferences = extractFileReferences(lines);
   const urlReferences = extractUrlReferences(lines);
   const referenceSeeds = buildReferenceSeeds(fileReferences, urlReferences);
@@ -472,7 +529,8 @@ export const normalizeSkillMarkdown = (markdown, source = {}) => {
       },
       references: referenceSeeds,
       translation: {
-        mode: 'full'
+        mode: 'full',
+        sections: translationSections
       },
       source: reportSource
     }
@@ -485,12 +543,12 @@ export const readRemoteSkillSource = async (input, options = {}) => {
     throw new Error('fetch is unavailable in the current runtime');
   }
 
-  const rawUrl = rewriteGitHubBlobToRaw(input);
+  const rawUrl = rewriteGitLabBlobToRaw(rewriteGitHubBlobToRaw(input));
   const candidates =
     rawUrl !== input
       ? [
-          { url: rawUrl, strategy: 'github-raw' },
-          { url: input, strategy: 'github-page-fallback' }
+          { url: rawUrl, strategy: 'raw-candidate' },
+          { url: input, strategy: 'page-fallback' }
         ]
       : [{ url: input, strategy: 'direct-url' }];
 
@@ -499,7 +557,7 @@ export const readRemoteSkillSource = async (input, options = {}) => {
     if (!response.ok) continue;
     const text = await response.text();
     if (!text.trim()) continue;
-    if (candidate.strategy === 'github-raw' && isLikelyHtml(text)) continue;
+    if (candidate.strategy === 'raw-candidate' && isLikelyHtml(text)) continue;
 
     return {
       text,

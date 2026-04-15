@@ -51,6 +51,61 @@ const requiredPaths = [
 const readPath = (input, pathKey) =>
   pathKey.split('.').reduce((current, part) => (current == null ? undefined : current[part]), input);
 
+const mergeFullHumanSections = (draftSections, overlaySections) => {
+  const merged = draftSections.map((section) => ({ ...section, rows: [...section.rows] }));
+
+  for (let index = 0; index < overlaySections.length; index += 1) {
+    const overlaySection = overlaySections[index];
+    const targetIndex = merged.findIndex((item) => item.title_en === overlaySection.title_en);
+    const sectionIndex = targetIndex >= 0 ? targetIndex : index;
+    const draftSection = merged[sectionIndex] || { title_zh: '', title_en: overlaySection.title_en || '', rows: [] };
+    const draftRows = Array.isArray(draftSection.rows) ? draftSection.rows : [];
+    const overlayRows = Array.isArray(overlaySection.rows) ? overlaySection.rows : [];
+    const rowCount = Math.max(draftRows.length, overlayRows.length);
+
+    const rows = [];
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+      const draftRow = draftRows[rowIndex] || {};
+      const overlayRow = overlayRows[rowIndex] || {};
+      rows.push({
+        zh: overlayRow.zh ?? draftRow.zh ?? '',
+        en: draftRow.en ?? overlayRow.en ?? ''
+      });
+    }
+
+    merged[sectionIndex] = {
+      title_zh: overlaySection.title_zh ?? draftSection.title_zh ?? '',
+      title_en: draftSection.title_en || overlaySection.title_en || '',
+      rows
+    };
+  }
+
+  return merged;
+};
+
+const mergeTranslation = (draftTranslation = {}, overlayTranslation = {}) => {
+  const coverage = overlayTranslation.coverage || 'full';
+
+  if (coverage === 'full_auto') {
+    return {
+      ...draftTranslation,
+      sections: Array.isArray(draftTranslation.sections) ? draftTranslation.sections : []
+    };
+  }
+
+  if (coverage === 'full_human') {
+    return {
+      ...draftTranslation,
+      sections: mergeFullHumanSections(
+        Array.isArray(draftTranslation.sections) ? draftTranslation.sections : [],
+        Array.isArray(overlayTranslation.sections) ? overlayTranslation.sections : []
+      )
+    };
+  }
+
+  return deepMerge(draftTranslation, overlayTranslation);
+};
+
 export const validateReportShape = (report) => {
   for (const pathKey of requiredPaths) {
     if (readPath(report, pathKey) === undefined) {
@@ -70,7 +125,10 @@ export const validateReportShape = (report) => {
 };
 
 export const finalizeReport = (draft, overlay = {}) => {
-  const merged = deepMerge(draft, overlay);
+  const merged = deepMerge(draft, {
+    ...overlay,
+    translation: mergeTranslation(draft.translation, overlay.translation)
+  });
   return validateReportShape(merged);
 };
 

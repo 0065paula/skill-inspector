@@ -73,7 +73,7 @@ export const buildReportDraft = (normalized) => {
     },
     translation: {
       mode: translationSeed.mode || 'full',
-      sections: []
+      sections: Array.isArray(translationSeed.sections) ? translationSeed.sections : []
     },
     references: referencesSeed.map((ref) => ({
       target: ref.target,

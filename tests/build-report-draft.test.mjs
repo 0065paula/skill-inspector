@@ -26,15 +26,14 @@ test('buildReportDraft seeds deterministic report fields from normalized skill d
   assert.equal(draft.summary.score_total, 0);
   assert.equal(draft.summary.risk_level, '待评估');
   assert.equal(draft.translation.mode, 'full');
+  assert.ok(Array.isArray(draft.translation.sections));
   assert.deepEqual(
     draft.workflow.nodes.map((item) => item.id),
     ['step_1', 'step_2', 'step_3']
   );
-  assert.equal(draft.references.length, 2);
+  assert.equal(draft.references.length, 1);
   assert.equal(draft.references[0].summary, '本地文档文件，用于补充执行时需要读取的内容。');
-  assert.equal(draft.references[1].summary, '外部链接，用于补充执行时需要访问的在线内容。');
   assert.equal(draft.references[0].line, 'L10');
-  assert.equal(draft.references[1].line, 'L11');
   assert.equal(draft.source.primary_value, samplePath);
 });
 
@@ -112,6 +111,7 @@ test('build-report-draft CLI writes a schema-shaped draft report', () => {
   assert.equal(draft.summary.title, 'Sample Generic Skill');
   assert.ok(Array.isArray(draft.workflow.nodes));
   assert.ok(Array.isArray(draft.workflow.edges));
+  assert.ok(Array.isArray(draft.translation.sections));
   assert.ok(Array.isArray(draft.references));
   assert.ok(Array.isArray(draft.suggestions));
   assert.equal(draft.translation.mode, 'full');

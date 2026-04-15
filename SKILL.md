@@ -85,6 +85,10 @@ Translation rules for report size:
 - Use `translation.mode` to control verbosity
 - Prefer `compact` for routine inspections
 - Use `full` only when side-by-side translation of most sections materially helps the reader
+- When using overlays, prefer layered translation coverage:
+  - `full_auto`: reuse the draft's English section skeleton without adding manual translation rows
+  - `full_human`: keep the draft's English rows and let the overlay provide only Chinese `zh`
+  - `full_override`: let the overlay fully replace both Chinese and English rows when the draft structure is insufficient
 
 Do not skip this step.
 
@@ -122,6 +126,7 @@ Optional preprocessing helper:
 - `node scripts/build-report-overlay-template.mjs out/report.draft.json out/report.overlay.template.json`
 - Use the overlay template as the preferred model input shape for judgment-heavy fields
 - Let the model fill `workflow` in the overlay when heuristic workflow extraction is too rigid or inaccurate
+- Prefer `translation.coverage: full_human` for complete translation with lower output token cost
 - Let the model write a small `report.overlay.json` that focuses on judgment-heavy fields
 - `node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json out/report.json`
 
