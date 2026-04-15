@@ -120,10 +120,11 @@ const referencesHtml = `<div class="meta-stack">${report.references
             <div class="meta-row">
               <strong>${escapeHtml(ref.target)}</strong>
               <div class="meta-copy">${escapeHtml(ref.summary)}</div>
-              <div class="muted">类型: ${escapeHtml(ref.kind)}${
-                ref.condition ? ` · 条件: ${escapeHtml(ref.condition)}` : ''
-              }</div>
-              <div class="muted">证据: ${escapeHtml(ref.line)}</div>
+              <div class="reference-tags">
+                <span class="reference-tag">${escapeHtml(ref.kind)}</span>
+                ${ref.line ? `<span class="reference-tag">${escapeHtml(ref.line)}</span>` : ''}
+                ${ref.condition ? `<span class="reference-tag reference-tag--condition">${escapeHtml(ref.condition)}</span>` : ''}
+              </div>
             </div>`
   )
   .join('\n')}

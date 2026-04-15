@@ -2,9 +2,52 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const referenceSummary = (ref) => {
-  if (ref.kind === 'file') return '源 skill 中引用的本地文件。';
-  if (ref.kind === 'url') return '源 skill 中引用的外部链接。';
-  return '源 skill 中引用的外部资源。';
+  const target = String(ref.target || '');
+
+  if (target.startsWith('agents/')) {
+    return 'Agent 说明文件，定义特定子任务的执行方式。';
+  }
+  if (target.startsWith('references/')) {
+    return '参考文档文件，用于补充规范、模式或数据结构说明。';
+  }
+  if (target.startsWith('assets/')) {
+    return '界面模板文件，用于生成或展示评审页面。';
+  }
+  if (target.startsWith('eval-viewer/') || target.startsWith('scripts/') || /\.(py|mjs|js|sh)$/i.test(target)) {
+    return '脚本文件，用于执行自动化步骤或生成结果。';
+  }
+  if (target.startsWith('evals/')) {
+    return '评测定义文件，用于保存测试用例或断言数据。';
+  }
+  if (target.startsWith('/')) {
+    if (target.split('/').filter(Boolean).length === 1) {
+      return 'Slash command 名称，用于说明某个命令应避免或应触发。';
+    }
+    return '临时或用户目录路径，用于 staging、下载或可写副本。';
+  }
+  if (target.startsWith('out/')) {
+    return '输出结果路径，用于保存生成后的报告或中间产物。';
+  }
+  if (target.endsWith('/outputs/')) {
+    return '运行结果目录，用于保存某类配置下的输出文件。';
+  }
+  if (target.startsWith('/tmp/') || target.startsWith('~/')) {
+    return '临时或用户目录路径，用于 staging、下载或可写副本。';
+  }
+  if (ref.kind === 'file') {
+    return '本地文档文件，用于补充执行时需要读取的内容。';
+  }
+  if (ref.kind === 'url') {
+    return '外部链接，用于补充执行时需要访问的在线内容。';
+  }
+  return '外部资源，用于补充执行时的依赖信息。';
+};
+
+const compactReferenceLine = (ref) => {
+  const line = String(ref.line || '');
+  const match = line.match(/^L(\d+):/);
+  if (!match) return line;
+  return `L${match[1]}`;
 };
 
 export const buildReportDraft = (normalized) => {
@@ -37,7 +80,7 @@ export const buildReportDraft = (normalized) => {
       kind: ref.kind,
       summary: referenceSummary(ref),
       condition: ref.condition ?? null,
-      line: ref.line
+      line: compactReferenceLine(ref)
     })),
     safety: {
       level_code: 'medium',

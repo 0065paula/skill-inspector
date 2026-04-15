@@ -169,3 +169,69 @@ test('rendered report embeds mermaid JSON that parses successfully', () => {
   assert.equal(typeof parsed, 'string');
   assert.match(parsed, /^flowchart TD/);
 });
+
+test('rendered report shows reference kind and line as compact tags', () => {
+  const fixtureDir = path.join(root, 'out', 'reference-tags-fixture');
+  const fixtureReportPath = path.join(fixtureDir, 'report.json');
+  const fixtureOutputPath = path.join(fixtureDir, 'report.html');
+
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.writeFileSync(
+    fixtureReportPath,
+    JSON.stringify(
+      {
+        summary: {
+          title: 'Reference Tags Skill',
+          purpose: 'fixture purpose',
+          score_total: 81,
+          risk_level: '低风险'
+        },
+        workflow: {
+          caption: 'fixture caption',
+          nodes: [
+            { id: 'input', label: 'Read source' }
+          ],
+          edges: []
+        },
+        translation: {
+          mode: 'compact',
+          sections: []
+        },
+        references: [
+          {
+            target: 'agents/grader.md',
+            kind: 'file',
+            summary: 'Agent 说明文件，定义特定子任务的执行方式。',
+            condition: 'Need examples',
+            line: 'L225'
+          }
+        ],
+        safety: {
+          level_code: 'low',
+          level_label: '低风险',
+          level_summary: 'fixture safety',
+          findings: []
+        },
+        install: { items: [] },
+        score: { dimensions: [] },
+        suggestions: [],
+        source: {
+          primary_label: '原始链接',
+          primary_value: 'https://example.com'
+        }
+      },
+      null,
+      2
+    )
+  );
+
+  execFileSync('node', [scriptPath, fixtureReportPath, fixtureOutputPath], { cwd: root });
+
+  const html = fs.readFileSync(fixtureOutputPath, 'utf8');
+
+  assert.match(html, /reference-tags/);
+  assert.match(html, />file</);
+  assert.match(html, />L225</);
+  assert.doesNotMatch(html, /类型:/);
+  assert.doesNotMatch(html, /证据:/);
+});
