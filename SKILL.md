@@ -78,6 +78,7 @@ Workflow rules:
 - Fill `workflow.nodes` and `workflow.edges`
 - Keep `workflow.caption` short and focused on execution logic
 - Let the local renderer derive Mermaid from the workflow structure
+- Load `prompts/workflow-generation.md` when the workflow graph needs language-level interpretation rather than simple heuristic extraction
 
 Translation rules for report size:
 
@@ -120,6 +121,7 @@ Optional preprocessing helper:
 - Use the generated draft report as the starting point for the final `report.json`
 - `node scripts/build-report-overlay-template.mjs out/report.draft.json out/report.overlay.template.json`
 - Use the overlay template as the preferred model input shape for judgment-heavy fields
+- Let the model fill `workflow` in the overlay when heuristic workflow extraction is too rigid or inaccurate
 - Let the model write a small `report.overlay.json` that focuses on judgment-heavy fields
 - `node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json out/report.json`
 
@@ -153,6 +155,18 @@ Reference presentation rules:
 - `summary` is the primary appendix description for each reference
 - `condition` should be reflected primarily in the workflow / Mermaid layer
 - when a reference has a trigger condition, prefer showing it on Mermaid edges instead of repeating it in appendix prose
+
+## Workflow Rules
+
+Load:
+
+`prompts/workflow-generation.md`
+
+Requirements:
+
+- Prefer execution structure over document structure
+- Use serial, branch, dependency, and terminal semantics intentionally
+- Keep the graph compact and readable
 
 ## Output Constraints
 

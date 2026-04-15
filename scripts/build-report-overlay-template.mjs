@@ -6,6 +6,11 @@ export const buildReportOverlayTemplate = (draft) => ({
     score_total: draft.summary?.score_total ?? 0,
     risk_level: draft.summary?.risk_level ?? '待评估'
   },
+  workflow: {
+    caption: '待补充 workflow 图说明。',
+    nodes: [],
+    edges: []
+  },
   translation: {
     coverage: 'full',
     sections: []

@@ -62,6 +62,16 @@ test('finalizeReport deep-merges overlay content into the draft report', () => {
       score_total: 87,
       risk_level: '低风险'
     },
+    workflow: {
+      caption: 'overlay workflow',
+      nodes: [
+        { id: 'input', label: 'Receive task' },
+        { id: 'output', label: 'Write result', kind: 'terminal' }
+      ],
+      edges: [
+        { from: 'input', to: 'output' }
+      ]
+    },
     translation: {
       sections: [
         {
@@ -94,6 +104,8 @@ test('finalizeReport deep-merges overlay content into the draft report', () => {
   assert.equal(result.summary.title, 'Fixture Skill');
   assert.equal(result.summary.score_total, 87);
   assert.equal(result.summary.risk_level, '低风险');
+  assert.equal(result.workflow.caption, 'overlay workflow');
+  assert.equal(result.workflow.nodes.length, 2);
   assert.equal(result.translation.mode, 'compact');
   assert.equal(result.translation.sections.length, 1);
   assert.equal(result.safety.level_code, 'low');
@@ -126,6 +138,16 @@ test('finalize-report CLI writes the merged final report', () => {
     `${JSON.stringify(
       {
         summary: { score_total: 91, risk_level: '低风险' },
+        workflow: {
+          caption: 'overlay workflow',
+          nodes: [
+            { id: 'input', label: 'Receive task' },
+            { id: 'output', label: 'Write result', kind: 'terminal' }
+          ],
+          edges: [
+            { from: 'input', to: 'output' }
+          ]
+        },
         translation: {
           sections: [
             {
@@ -152,6 +174,7 @@ test('finalize-report CLI writes the merged final report', () => {
   const output = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
 
   assert.equal(output.summary.score_total, 91);
+  assert.equal(output.workflow.caption, 'overlay workflow');
   assert.equal(output.translation.sections.length, 1);
   assert.equal(output.safety.level_code, 'low');
 });

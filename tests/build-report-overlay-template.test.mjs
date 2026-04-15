@@ -50,6 +50,7 @@ test('buildReportOverlayTemplate returns a small judgment-only overlay skeleton'
 
   assert.deepEqual(Object.keys(overlay), [
     'summary',
+    'workflow',
     'translation',
     'safety',
     'install',
@@ -57,6 +58,7 @@ test('buildReportOverlayTemplate returns a small judgment-only overlay skeleton'
     'suggestions'
   ]);
   assert.deepEqual(Object.keys(overlay.summary), ['score_total', 'risk_level']);
+  assert.deepEqual(Object.keys(overlay.workflow), ['caption', 'nodes', 'edges']);
   assert.deepEqual(Object.keys(overlay.translation), ['coverage', 'sections']);
   assert.equal(overlay.translation.coverage, 'full');
   assert.deepEqual(Object.keys(overlay.safety), [
@@ -84,6 +86,9 @@ test('build-report-overlay-template CLI writes the overlay template file', () =>
 
   assert.equal(overlay.summary.risk_level, '待评估');
   assert.equal(overlay.summary.score_total, 0);
+  assert.equal(overlay.workflow.caption, '待补充 workflow 图说明。');
+  assert.ok(Array.isArray(overlay.workflow.nodes));
+  assert.ok(Array.isArray(overlay.workflow.edges));
   assert.equal(overlay.translation.coverage, 'full');
   assert.ok(Array.isArray(overlay.translation.sections));
   assert.ok(Array.isArray(overlay.safety.findings));

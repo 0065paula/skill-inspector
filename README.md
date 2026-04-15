@@ -77,6 +77,8 @@ node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json o
 第三步产出的 `report.overlay.template.json` 给 agent 一个稳定的小输入形状。
 第四步把 `report.overlay.json` 合并进草稿，生成最终 `report.json`。
 
+当 workflow 图的语义靠规则难以稳定抽取时，推荐让 LLM 直接填写 overlay 里的 `workflow`，并按 [`prompts/workflow-generation.md`](./prompts/workflow-generation.md) 的约束输出结构化图。
+
 它现在还会额外生成 `reportSeeds`，里面预填了这些适合机械抽取的字段：
 
 - `summary`
@@ -114,6 +116,7 @@ node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json o
 - [`templates/report.example.json`](./templates/report.example.json)：示例输出
 - [`prompts/translation.md`](./prompts/translation.md)：翻译规则
 - [`prompts/insights.md`](./prompts/insights.md)：建议、评分和安全表达规则
+- [`prompts/workflow-generation.md`](./prompts/workflow-generation.md)：流程图生成规范
 - [`scripts/render-report.mjs`](./scripts/render-report.mjs)：JSON 到 HTML 的渲染脚本
 - [`scripts/normalize-skill.mjs`](./scripts/normalize-skill.mjs)：远程抓取和紧凑归一化脚本
 - [`scripts/build-report-draft.mjs`](./scripts/build-report-draft.mjs)：从归一化结果生成报告草稿
@@ -207,6 +210,8 @@ node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json o
 `report.overlay.template.json` gives the model a stable template for judgment-heavy fields.
 `report.overlay.json` stays small and focuses model effort before producing the final `report.json`.
 
+When heuristic workflow extraction becomes too rigid, let the model fill `workflow` directly in the overlay and follow [`prompts/workflow-generation.md`](./prompts/workflow-generation.md).
+
 It also includes `reportSeeds` for deterministic fields:
 
 - `summary`
@@ -244,6 +249,7 @@ This skill fits teams and agents that need to:
 - [`templates/report.example.json`](./templates/report.example.json): sample output
 - [`prompts/translation.md`](./prompts/translation.md): translation rules
 - [`prompts/insights.md`](./prompts/insights.md): scoring, recommendation, and safety-writing rules
+- [`prompts/workflow-generation.md`](./prompts/workflow-generation.md): structured workflow generation rules
 - [`scripts/render-report.mjs`](./scripts/render-report.mjs): JSON-to-HTML renderer
 - [`scripts/normalize-skill.mjs`](./scripts/normalize-skill.mjs): remote fetch and compact normalization helper
 - [`scripts/build-report-draft.mjs`](./scripts/build-report-draft.mjs): draft report generator from normalized data

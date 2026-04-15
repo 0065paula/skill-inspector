@@ -38,6 +38,38 @@ description: Use when grouped workflows need structure
 - [Spec](https://jsoncanvas.org/spec/1.0/)
 `;
 
+const serialStepWorkflowSource = `---
+name: serial-workflow-skill
+description: Use when staged reporting needs serial steps
+---
+
+# Serial Workflow Skill
+
+## Required Workflow
+
+### Step 1: Read and normalize the source
+
+- Read \`templates/report.schema.json\`
+
+### Step 2: Produce structured JSON first
+
+- Fill \`summary\`
+
+### Step 3: Fill the HTML template
+
+- Use \`templates/report.html\`
+
+### Step 4: Write outputs
+
+- Write \`out/report.json\`
+
+## Notes
+
+- Rewrite \`https://github.com/<owner>/<repo>/blob/<branch>/<path>\` to \`https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>\`
+- Avoid \`<script type="application/json">\` and \`</script>\` mistakes
+- Run \`node scripts/build-report-draft.mjs out/normalized-source.json out/report.draft.json\`
+`;
+
 test('rewriteGitHubBlobToRaw converts github blob URLs to raw URLs', () => {
   const input = 'https://github.com/kepano/obsidian-skills/blob/main/skills/json-canvas/SKILL.md';
   const output = rewriteGitHubBlobToRaw(input);
@@ -186,5 +218,61 @@ test('normalizeSkillMarkdown builds grouped workflow graphs for multi-section wo
   assert.equal(
     normalized.reportSeeds.references.find((item) => item.target === 'https://jsoncanvas.org/spec/1.0/')?.condition,
     'Need authoritative rules'
+  );
+});
+
+test('normalizeSkillMarkdown builds serial workflow graphs for step-based sections', () => {
+  const normalized = normalizeSkillMarkdown(serialStepWorkflowSource, {
+    originalSource: 'serial-source.md',
+    resolvedSource: 'serial-source.md'
+  });
+
+  assert.deepEqual(
+    normalized.reportSeeds.workflow.nodes.map((item) => item.id),
+    ['input', 'step_1', 'step_2', 'step_3', 'step_4', 'spec']
+  );
+  assert.deepEqual(
+    normalized.reportSeeds.workflow.edges
+      .map((item) => [item.from, item.to, item.label || null])
+      .sort(),
+    [
+      ['input', 'step_1', null],
+      ['step_1', 'spec', 'Need authoritative rules'],
+      ['step_1', 'step_2', null],
+      ['step_2', 'step_3', null],
+      ['step_3', 'step_4', null]
+    ].sort()
+  );
+  assert.equal(
+    normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'step_1')?.label,
+    'Read and normalize source'
+  );
+  assert.equal(
+    normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'step_4')?.label,
+    'Write outputs'
+  );
+  assert.equal(
+    normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'step_4')?.kind,
+    'terminal'
+  );
+  assert.equal(
+    normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'spec')?.label,
+    'templates/report.schema.json'
+  );
+});
+
+test('normalizeSkillMarkdown excludes placeholder URLs, script tags, and command snippets from file references', () => {
+  const normalized = normalizeSkillMarkdown(serialStepWorkflowSource, {
+    originalSource: 'serial-source.md',
+    resolvedSource: 'serial-source.md'
+  });
+
+  assert.deepEqual(
+    normalized.fileReferences.map((item) => item.target),
+    ['templates/report.schema.json', 'templates/report.html', 'out/report.json']
+  );
+  assert.deepEqual(
+    normalized.urlReferences.map((item) => item.target),
+    []
   );
 });

@@ -41,6 +41,7 @@ const slugify = (value) =>
     .replace(/^_+|_+$/g, '') || 'section';
 
 const cleanSectionLabel = (value) => String(value).replace(/^\d+\.\s*/, '').trim();
+const isStepSection = (value) => /^step\s+\d+:/i.test(cleanSectionLabel(value));
 
 const toTitleLabel = (value) =>
   cleanSectionLabel(value)
@@ -49,7 +50,9 @@ const toTitleLabel = (value) =>
     .join(' ');
 
 const compactWorkflowLabel = (value) => {
-  const clean = cleanSectionLabel(value)
+  const clean = String(value)
+    .replace(/^\d+\.\s*/, '')
+    .replace(/^step\s+\d+:\s*/i, '')
     .replace(/\b(a|an|the)\b/gi, ' ')
     .replace(/\b(new|existing)\b/gi, ' ')
     .replace(/\btwo\b/gi, '')
@@ -66,9 +69,24 @@ const inferReferenceCondition = (target) => {
   return null;
 };
 
+const compactReferenceLabel = (target) => {
+  const value = String(target);
+  if (/jsoncanvas\.org\/spec\/1\.0/i.test(value)) return 'JSON Canvas Spec 1.0';
+  if (value.startsWith('http')) {
+    try {
+      const url = new URL(value);
+      const tail = url.pathname.split('/').filter(Boolean).pop();
+      return tail || url.hostname;
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
+
 const referenceNodeLabel = (ref) => {
   if (ref.condition === 'Need examples') return 'references/EXAMPLES.md';
-  if (ref.condition === 'Need authoritative rules') return 'JSON Canvas Spec 1.0';
+  if (ref.condition === 'Need authoritative rules') return compactReferenceLabel(ref.target);
   return ref.target;
 };
 
@@ -76,6 +94,22 @@ const referenceNodeId = (ref) => {
   if (ref.condition === 'Need examples') return 'examples';
   if (ref.condition === 'Need authoritative rules') return 'spec';
   return slugify(ref.target);
+};
+
+const shouldKeepFileReference = (target) => {
+  const value = String(target);
+  if (looksLikeUrl(value)) return false;
+  if (/\s/.test(value)) return false;
+  if (value.startsWith('<') || value.startsWith('</')) return false;
+  if (/[<>]/.test(value)) return false;
+  return true;
+};
+
+const shouldKeepUrlReference = (target, evidence) => {
+  const value = String(target);
+  if (/[<>]/.test(value)) return false;
+  if (/<[^>]+>/.test(String(evidence))) return false;
+  return true;
 };
 
 const buildLinearWorkflowGraph = (workflowSteps) => ({
@@ -141,20 +175,72 @@ const buildGroupedWorkflowGraph = (workflowSections, references) => {
   };
 };
 
+const buildSerialWorkflowGraph = (workflowSections, references) => {
+  const nodes = [{ id: 'input', label: 'Receive task' }];
+  const edges = [];
+  const conditionalReferenceNodes = new Map();
+
+  workflowSections.forEach((section, index) => {
+    const id = `step_${index + 1}`;
+    const label = compactWorkflowLabel(section.label);
+    const node = { id, label };
+    if (index === workflowSections.length - 1) node.kind = 'terminal';
+    nodes.push(node);
+    edges.push({
+      from: index === 0 ? 'input' : `step_${index}`,
+      to: id
+    });
+  });
+
+  for (const ref of references.filter((item) => item.condition)) {
+    const ownerIndex = workflowSections.findIndex(
+      (section) => itemLineNumber(ref) >= section.line && itemLineNumber(ref) <= section.endLine
+    );
+    if (ownerIndex < 0) continue;
+
+    const id = referenceNodeId(ref);
+    if (!conditionalReferenceNodes.has(id)) {
+      conditionalReferenceNodes.set(id, {
+        id,
+        label: referenceNodeLabel(ref),
+        kind: 'reference'
+      });
+    }
+
+    edges.push({
+      from: `step_${ownerIndex + 1}`,
+      to: id,
+      label: ref.condition
+    });
+  }
+
+  nodes.push(...conditionalReferenceNodes.values());
+
+  return {
+    nodes,
+    edges,
+    caption: '按 Step 子节生成的串行流程图，条件引用从对应步骤侧挂出。'
+  };
+};
+
+const itemLineNumber = (item) => item.lineNumber ?? item.line ?? -1;
+
 const buildReferenceSeeds = (fileReferences, urlReferences) => [
   ...fileReferences.map((item) => ({
     target: item.target,
     kind: 'file',
     condition: inferReferenceCondition(item.target),
     line: `L${item.line}: ${item.evidence}`,
-    evidence: item.evidence
+    evidence: item.evidence,
+    lineNumber: item.line
   })),
   ...urlReferences.map((item) => ({
     target: item.target,
     kind: 'url',
     condition: inferReferenceCondition(item.target),
     line: `L${item.line}: ${item.evidence}`,
-    evidence: item.evidence
+    evidence: item.evidence,
+    lineNumber: item.line
   }))
 ];
 
@@ -291,6 +377,7 @@ const extractWorkflowSections = (lines, headings) => {
           parent: parent.text,
           label: cleanSectionLabel(child.text),
           line: child.line,
+          endLine: childEnd,
           steps
         });
       }
@@ -303,13 +390,15 @@ const extractWorkflowSections = (lines, headings) => {
 const extractFileReferences = (lines) => {
   const matches = [];
   const mdLinkRe = /\[[^\]]+\]\((?!https?:\/\/)([^)]+)\)/g;
-  const codePathRe = /`([^`\n]*\/[^`\n]+)`/g;
+  const codePathRe = /`([^\s`\n]*\/[^\s`\n]+)`/g;
 
   lines.forEach((line, index) => {
     for (const match of line.matchAll(mdLinkRe)) {
+      if (!shouldKeepFileReference(match[1])) continue;
       matches.push({ target: match[1], line: index + 1, evidence: line.trim() });
     }
     for (const match of line.matchAll(codePathRe)) {
+      if (!shouldKeepFileReference(match[1])) continue;
       matches.push({ target: match[1], line: index + 1, evidence: line.trim() });
     }
   });
@@ -323,6 +412,7 @@ const extractUrlReferences = (lines) => {
 
   lines.forEach((line, index) => {
     for (const match of line.matchAll(urlRe)) {
+      if (!shouldKeepUrlReference(match[0], line)) continue;
       matches.push({ target: match[0], line: index + 1, evidence: line.trim() });
     }
   });
@@ -342,7 +432,9 @@ export const normalizeSkillMarkdown = (markdown, source = {}) => {
   const referenceSeeds = buildReferenceSeeds(fileReferences, urlReferences);
   const workflowGraph =
     workflowSections.length >= 2
-      ? buildGroupedWorkflowGraph(workflowSections, referenceSeeds)
+      ? workflowSections.every((section) => isStepSection(section.label))
+        ? buildSerialWorkflowGraph(workflowSections, referenceSeeds)
+        : buildGroupedWorkflowGraph(workflowSections, referenceSeeds)
       : buildLinearWorkflowGraph(workflowSteps);
   const title = headings[0]?.text || frontmatter.name || 'Untitled Skill';
   const purpose = frontmatter.description || title;
