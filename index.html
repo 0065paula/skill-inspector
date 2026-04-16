@@ -4,10 +4,27 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Skill Inspector - Skill Inspector</title>
-    <script id="mermaid-source" type="application/json">"flowchart TD\ninput[\"Skill Source\"]\nparse[\"Read and Normalize\"]\nschema[\"report.schema.json\"]\ntranslation[\"translation.md\"]\ninsights[\"insights.md\"]\njsonOut[\"report.json\"]\nhtmlTemplate[\"report.html Template\"]\nhtmlOut[\"report.html\"]\ninput -->|read source| parse\nparse -->|when producing report.json| schema\nparse -->|when translating natural-language content| translation\nparse -->|when generating suggestions and rationales| insights\nschema -->|define required fields| jsonOut\ntranslation -->|fill translated sections| jsonOut\ninsights -->|fill suggestions and rationales| jsonOut\njsonOut -->|bind structured content| htmlTemplate\nhtmlTemplate -->|render final report| htmlOut\nclassDef inputNode fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;\nclassDef parseNode fill:#dcfce7,stroke:#15803d,color:#166534;\nclassDef referenceNode fill:#ede9fe,stroke:#7c3aed,color:#5b21b6;\nclassDef outputNode fill:#e5e7eb,stroke:#4b5563,color:#1f2937;\nclass input inputNode;\nclass parse parseNode;\nclass schema,translation,insights,htmlTemplate referenceNode;\nclass jsonOut,htmlOut outputNode;"</script>
+    <script id="mermaid-source" type="application/json">"flowchart TD\ninput[\"Receive skill source\"]\nnormalize[\"Read and normalize source\"]\ndraft[\"Generate report.draft.json\"]\noverlay_template[\"Generate report.overlay.template.json\"]\noverlay_fill[\"Fill judgment-heavy overlay\"]\nfinalize[\"Finalize report.json\"]\nrender[\"Render report.html\"]\nwrite([\"Write outputs\"])\nschema[[\"templates/report.schema.json\"]]\ntemplate[[\"templates/report.html\"]]\nworkflow_prompt[[\"prompts/workflow-generation.md\"]]\ntranslation_prompt[[\"prompts/translation.md\"]]\ninsights_prompt[[\"prompts/insights.md\"]]\ninput --\u003e normalize\nnormalize --\u003e draft\ndraft --\u003e overlay_template\noverlay_template --\u003e overlay_fill\noverlay_fill --\u003e finalize\nfinalize --\u003e render\nrender --\u003e write\nschema --\u003e|Validate required shape| finalize\ntemplate --\u003e|Fill template| render\nworkflow_prompt --\u003e|Interpret workflow graph| overlay_fill\ntranslation_prompt --\u003e|Write translation| overlay_fill\ninsights_prompt --\u003e|Write safety and score| overlay_fill"</script>
     <script type="module">
       import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-      mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: "loose",
+        theme: "base",
+        themeVariables: {
+          primaryColor: "#edf4fa",
+          primaryTextColor: "#223446",
+          primaryBorderColor: "#8aa0b4",
+          lineColor: "#73889b",
+          secondaryColor: "#f4f8fb",
+          tertiaryColor: "#f8fbfd",
+          clusterBkg: "#f4f8fb",
+          clusterBorder: "#8aa0b4",
+          fontFamily: "Avenir Next, Helvetica Neue, Segoe UI, sans-serif",
+          nodeBorder: "#8aa0b4"
+        }
+      });
       const sourceEl = document.getElementById("mermaid-source");
       const source = JSON.parse(sourceEl.textContent);
       const targets = [
@@ -24,152 +41,575 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #f6f5f1;
-        --paper: rgba(255, 255, 255, 0.82);
-        --ink: #181818;
-        --muted: #68645d;
-        --line: rgba(34, 31, 26, 0.08);
-        --line-strong: rgba(22, 27, 34, 0.16);
-        --accent: #173b6f;
-        --accent-soft: rgba(23, 59, 111, 0.08);
-        --risk-low: #16795a;
-        --risk-medium: #a56b12;
-        --risk-high: #b6492a;
-        --risk-critical: #b42318;
-        --score-excellent: #1f68d7;
-        --score-strong: #2f86d9;
-        --score-good: #5b8dff;
+        --bg: #f3f8fb;
+        --paper: rgba(249, 252, 254, 0.88);
+        --paper-strong: rgba(235, 243, 249, 0.9);
+        --ink: #182634;
+        --muted: #617385;
+        --line: rgba(77, 101, 124, 0.14);
+        --line-strong: rgba(58, 82, 105, 0.24);
+        --accent: #31597c;
+        --accent-soft: rgba(49, 89, 124, 0.09);
+        --risk-low: #1d7358;
+        --risk-medium: #8f6921;
+        --risk-high: #a14f3d;
+        --risk-critical: #a73a30;
+        --score-excellent: #336aa6;
+        --score-strong: #477eb2;
+        --score-good: #6a92bb;
       }
       * { box-sizing: border-box; }
       html { scroll-behavior: smooth; }
       body {
         margin: 0;
-        font: 14px/1.68 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font: 14px/1.75 "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
         background:
-          linear-gradient(180deg, rgba(23, 59, 111, 0.045) 0, rgba(23, 59, 111, 0) 120px),
-          linear-gradient(180deg, #faf9f6 0%, var(--bg) 100%);
+          radial-gradient(circle at top right, rgba(182, 202, 225, 0.34), transparent 28%),
+          linear-gradient(180deg, #f9fcfe 0%, var(--bg) 100%);
         color: var(--ink);
       }
-      main { max-width: 1228px; margin: 0 auto; padding: 22px 26px 72px; }
-      .eyebrow, .section-kicker { color: var(--muted); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
-      .eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-bottom: 10px; }
-      h1 { margin: 0 0 8px; font-size: 35px; line-height: 1.06; letter-spacing: -.035em; }
-      h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.18; letter-spacing: -.02em; }
-      h3 { margin: 0 0 6px; font-size: 16px; line-height: 1.28; }
+      main {
+        max-width: 1260px;
+        margin: 0 auto;
+        padding: 28px 30px 80px;
+      }
+      .eyebrow,
+      .section-kicker {
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .eyebrow {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        margin: 0 0 14px;
+      }
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+        font-weight: 600;
+        color: #162433;
+      }
+      h1 {
+        max-width: none;
+        margin-bottom: 12px;
+        font-size: clamp(2.6rem, 4.6vw, 4.3rem);
+        line-height: 0.98;
+        letter-spacing: -0.04em;
+      }
+      h2 {
+        margin-bottom: 6px;
+        font-size: 1.7rem;
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+      }
+      h3 {
+        margin-bottom: 6px;
+        font-size: 1.1rem;
+        line-height: 1.22;
+        letter-spacing: -0.02em;
+      }
       p { margin: 0 0 10px; }
-      .hero { position: relative; padding: 8px 0 18px; margin-bottom: 12px; border-bottom: 1px solid var(--line-strong); }
-      .hero-top { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 24px; }
-      .hero-copy { min-width: 0; }
-      .summary { max-width: 62ch; font-size: 15px; line-height: 1.55; color: #2d2923; margin-bottom: 0; }
-      .hero-stats { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; min-width: 220px; }
-      .hero-stat { display: grid; grid-template-columns: 74px 1fr; align-items: baseline; gap: 10px; padding-top: 7px; border-top: 1px solid rgba(31,35,41,.08); }
-      .hero-stat:first-child { padding-top: 0; border-top: 0; }
-      .hero-stat dt { margin: 0; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-      .hero-stat dd { margin: 0; color: var(--accent); font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+      .hero {
+        padding: 0 0 18px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid var(--line-strong);
+      }
+      .hero-copy {
+        display: grid;
+        gap: 0;
+        min-width: 0;
+      }
+      .summary {
+        max-width: 60ch;
+        margin-bottom: 12px;
+        font-size: 16px;
+        line-height: 1.7;
+        color: #243647;
+      }
+      .source-inline {
+        max-width: 72ch;
+        margin: 0;
+        padding-left: 0;
+        border-left: 0;
+        font-size: 12.5px;
+        line-height: 1.7;
+        color: #516375;
+        word-break: break-word;
+      }
+      .source-inline strong {
+        color: #213244;
+        font-weight: 600;
+      }
+      .source-inline a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .source-inline a:hover {
+        text-decoration: underline;
+      }
+      .hero-metrics {
+        margin: 22px 0 0;
+        padding: 14px 0 0;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        border-top: 1px solid var(--line);
+      }
+      .hero-stat {
+        margin: 0;
+        padding-top: 8px;
+        border-top: 2px solid rgba(68, 94, 119, 0.14);
+      }
+      .hero-stat dt {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .hero-stat dd {
+        margin: 0;
+        color: var(--accent);
+        font-size: 18px;
+        line-height: 1.2;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
       .tone-low { color: var(--risk-low) !important; }
       .tone-medium { color: var(--risk-medium) !important; }
       .tone-high { color: var(--risk-high) !important; }
       .tone-critical { color: var(--risk-critical) !important; }
-      .nav-shell { position: sticky; top: 0; z-index: 5; margin-bottom: 26px; background: transparent; border-bottom: 1px solid rgba(34,31,26,.06); backdrop-filter: blur(12px); }
-      .nav { display: flex; gap: 12px; overflow-x: auto; padding: 8px 0 10px; }
-      .nav-link { color: #444039; text-decoration: none; white-space: nowrap; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 0 0 6px; border-bottom: 1px solid transparent; }
-      .nav-link:hover { color: var(--accent); border-bottom-color: rgba(23,59,111,.22); }
-      .layout { display: grid; grid-template-columns: minmax(0,1fr) 232px; gap: 40px; align-items: start; }
-      .main-column, .side-column { min-width: 0; }
-      .main-column { display: grid; gap: 34px; }
-      .side-column { display: grid; gap: 16px; position: sticky; top: 50px; padding-left: 18px; border-left: 1px solid rgba(22,27,34,.08); }
-      .appendix-head { padding-bottom: 6px; }
-      .appendix-head p { margin: 0; }
-      .panel, .meta-card { background: transparent; border: 0; box-shadow: none; }
-      .panel { padding-top: 0; }
-      .meta-card { border-top: 1px solid var(--line); padding-top: 12px; }
-      .side-column .meta-card:first-of-type { border-top: 0; padding-top: 0; }
-      .panel-head { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 14px; margin-bottom: 14px; }
-      .viewer-trigger, .viewer-close { border: 1px solid var(--line-strong); border-radius: 10px; background: rgba(255,255,255,.72); color: #212121; padding: 8px 12px; font: inherit; cursor: pointer; white-space: nowrap; }
-      .viewer-trigger:hover, .viewer-close:hover { background: #fff; }
-      .graph-shell { min-height: 296px; overflow: auto; border-radius: 10px; background: linear-gradient(180deg, rgba(255,255,255,.76) 0%, rgba(247,245,239,.88) 100%); border: 1px solid rgba(37,31,22,.08); padding: 14px; }
-      .graph-shell svg { min-width: 820px; height: auto; }
-      .translation-panel { display: grid; gap: 20px; }
-      .translation-block { border-top: 1px solid rgba(37,31,22,.08); padding-top: 18px; }
-      .translation-block:first-of-type { border-top: 0; padding-top: 0; }
-      .translation-compare { display: grid; grid-template-columns: minmax(0,1.22fr) minmax(0,.78fr); gap: 18px; }
-      .translation-col { min-width: 0; }
-      .translation-col + .translation-col { border-left: 1px solid rgba(22,27,34,.08); padding-left: 16px; }
-.translation-block-row { padding: 9px 0; }
-.translation-block-row:first-child { padding-top: 0; }
-      .translation-text { white-space: pre-wrap; word-break: break-word; color: #25211b; font-size: 13.5px; line-height: 1.74; }
-      .translation-original { white-space: pre-wrap; word-break: break-word; color: #5a554f; font-size: 12.5px; line-height: 1.7; }
-      .meta-stack, .status-grid, .source-list { display: grid; gap: 10px; }
-      .meta-row, .status-row, .score-row, .source-item { border: 0; border-bottom: 1px dashed rgba(37,31,22,.08); background: transparent; border-radius: 0; padding: 0 0 10px; }
-      .meta-row:last-child, .status-row:last-child, .score-row:last-child, .source-item:last-child { border-bottom: 0; padding-bottom: 0; }
-      .meta-row strong, .source-item strong { display: block; margin-bottom: 3px; word-break: break-word; font-size: 13px; line-height: 1.45; }
-      .meta-card h2 { font-size: 15px; line-height: 1.22; margin-bottom: 9px; letter-spacing: -.01em; }
-      .status-row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 13px; }
-      .score-summary { display: grid; gap: 6px; padding: 0 0 12px; border-bottom: 1px solid rgba(37,31,22,.1); }
-      .score-summary strong { display: block; font-size: 20px; line-height: 1.1; letter-spacing: -.02em; }
+      .nav-shell {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        margin-bottom: 24px;
+        background: rgba(243, 248, 251, 0.1);
+        border-bottom: 1px solid rgba(77, 101, 124, 0.1);
+        backdrop-filter: blur(10px);
+      }
+      .nav {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        padding: 10px 0 11px;
+      }
+      .nav-link {
+        color: #506376;
+        text-decoration: none;
+        white-space: nowrap;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding-bottom: 4px;
+      }
+      .nav-link:hover {
+        color: var(--accent);
+      }
+      .report-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 288px;
+        gap: 34px;
+        align-items: start;
+      }
+      .main-column,
+      .side-rail {
+        min-width: 0;
+      }
+      .main-column {
+        display: grid;
+        gap: 36px;
+        padding-right: 8px;
+      }
+      .side-rail {
+        display: grid;
+        gap: 18px;
+        position: sticky;
+        top: 56px;
+        align-self: start;
+        padding-left: 20px;
+        border-left: 1px solid var(--line);
+      }
+      .appendix-head {
+        padding: 2px 0 4px;
+      }
+      .appendix-head p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .panel,
+      .meta-card {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+      .panel {
+        padding-top: 0;
+      }
+      .panel-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .panel-head .muted {
+        max-width: 56ch;
+      }
+      .viewer-trigger,
+      .viewer-close {
+        border: 1px solid var(--line-strong);
+        border-radius: 0;
+        background: rgba(248, 251, 253, 0.9);
+        color: #203142;
+        padding: 8px 12px;
+        font: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .viewer-trigger:hover,
+      .viewer-close:hover {
+        background: rgba(255, 255, 255, 0.96);
+      }
+      .workflow-panel,
+      .translation-panel {
+        padding-top: 0;
+        border-top: 0;
+      }
+      .graph-shell {
+        min-height: 320px;
+        overflow: auto;
+        background: #fff;
+        border: 1px solid rgba(77, 101, 124, 0.1);
+        padding: 12px 0;
+      }
+      .graph-shell svg {
+        min-width: 820px;
+        height: auto;
+      }
+      .translation-panel {
+        display: grid;
+        gap: 20px;
+      }
+      .translation-block {
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+      .translation-block:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .translation-compare {
+        display: grid;
+        grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+        gap: 22px;
+      }
+      .translation-col {
+        min-width: 0;
+      }
+      .translation-col + .translation-col {
+        padding-left: 18px;
+        border-left: 1px solid var(--line);
+      }
+      .translation-block-row {
+        padding: 10px 0;
+        border-bottom: 1px dashed rgba(77, 101, 124, 0.12);
+      }
+      .translation-block-row:first-child {
+        padding-top: 0;
+      }
+      .translation-block-row:last-child {
+        border-bottom: 0;
+      }
+      .translation-text {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #203244;
+        font-size: 13.5px;
+        line-height: 1.8;
+      }
+      .translation-original {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #627485;
+        font-size: 12.5px;
+        line-height: 1.75;
+      }
+      .meta-card {
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+      .side-rail .meta-card:first-of-type {
+        padding-top: 0;
+        border-top: 0;
+      }
+      .meta-card h2 {
+        margin-bottom: 10px;
+        font-size: 1rem;
+        line-height: 1.25;
+      }
+      .meta-stack,
+      .status-grid,
+      .source-list {
+        display: grid;
+        gap: 12px;
+      }
+      .meta-row,
+      .status-row,
+      .score-row,
+      .source-item {
+        padding: 0 0 12px;
+        border-bottom: 1px dashed rgba(77, 101, 124, 0.16);
+      }
+      .meta-row:last-child,
+      .status-row:last-child,
+      .score-row:last-child,
+      .source-item:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+      }
+      .meta-row strong,
+      .source-item strong {
+        display: block;
+        margin-bottom: 4px;
+        word-break: break-word;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        font-size: 13px;
+      }
+      .score-summary,
+      .safety-summary {
+        display: grid;
+        gap: 6px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .score-summary strong,
+      .safety-summary strong {
+        display: block;
+        font-size: 22px;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+      }
       .score-summary--excellent strong { color: var(--score-excellent); }
       .score-summary--strong strong { color: var(--score-strong); }
       .score-summary--good strong { color: var(--score-good); }
-      .score-summary .meta-copy { font-size: 13px; line-height: 1.68; color: #454039; max-width: 32ch; }
-      .meta-row .muted, .status-row .muted, .source-item .muted { font-size: 12px; line-height: 1.5; }
-      .side-column .section-kicker { font-size: 10px; letter-spacing: .12em; }
-      .score-row { display: grid; gap: 4px; }
-      .score-row strong, .status-row strong { font-size: 12.5px; }
-      .score-row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-      .score-label { color: #24201b; }
-      .score-value { color: #5b5852; }
-      .meta-copy { font-size: 12.5px; line-height: 1.62; color: #3f3b35; }
-      .safety-summary { display: grid; gap: 6px; padding: 0 0 12px; border-bottom: 1px solid rgba(37,31,22,.1); }
-      .safety-summary strong { display: block; font-size: 20px; line-height: 1.1; letter-spacing: -.02em; }
-      .safety-summary .meta-copy { font-size: 13px; line-height: 1.7; color: #454039; max-width: 32ch; }
-      .safety-finding-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
-      .safety-finding-title strong { margin: 0; }
-      .safety-severity { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-      .score-bar { height: 8px; border-radius: 999px; background: rgba(23,59,111,.12); overflow: hidden; }
-      .score-bar span { display: block; height: 100%; background: linear-gradient(90deg, #5a8df3 0%, #2d5fc9 100%); border-radius: 999px; }
-      .score-bar--excellent span { background: linear-gradient(90deg, #46a0ff 0%, #1f68d7 100%); }
-      .score-bar--strong span { background: linear-gradient(90deg, #57b6ff 0%, #2f86d9 100%); }
-      .score-bar--good span { background: linear-gradient(90deg, #8fa7ff 0%, #5b8dff 100%); }
-      .source-item span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .08em; }
-      .muted { color: var(--muted); }
-      .viewer-shell { position: fixed; inset: 0; display: none; background: rgba(24,20,16,.64); z-index: 30; padding: 24px; }
-      .viewer-shell.is-open { display: block; }
-      .viewer { max-width: 1280px; height: calc(100vh - 48px); margin: 0 auto; border-radius: 14px; background: rgba(250,248,242,.98); border: 1px solid rgba(255,255,255,.3); box-shadow: 0 24px 70px rgba(0,0,0,.18); display: flex; flex-direction: column; }
-      .viewer-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 20px; border-bottom: 1px solid rgba(37,31,22,.08); }
-      .viewer-body { padding: 20px; overflow: auto; }
+      .score-summary .meta-copy,
+      .safety-summary .meta-copy {
+        max-width: 28ch;
+        font-size: 13px;
+        line-height: 1.72;
+        color: #415366;
+      }
+      .meta-row .muted,
+      .status-row .muted,
+      .source-item .muted {
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .side-rail .section-kicker {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+      }
+      .score-row {
+        display: grid;
+        gap: 5px;
+      }
+      .score-row strong,
+      .status-row strong {
+        font-size: 12.5px;
+      }
+      .score-row-head,
+      .safety-finding-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .score-label {
+        color: #223446;
+      }
+      .score-value {
+        color: #697b8d;
+      }
+      .meta-copy {
+        font-size: 12.5px;
+        line-height: 1.68;
+        color: #33485a;
+      }
+      .reference-tags {
+        display: grid;
+        gap: 3px;
+        margin-top: 7px;
+      }
+      .reference-tag {
+        display: block;
+        padding: 0;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
+        color: #718396;
+        font-size: 10px;
+        line-height: 1.45;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .reference-tag--condition {
+        color: #7d8791;
+      }
+      .safety-finding-title {
+        margin-bottom: 4px;
+      }
+      .safety-finding-title strong {
+        margin: 0;
+      }
+      .safety-severity {
+        font-size: 10.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .score-bar {
+        height: 6px;
+        background: rgba(49, 89, 124, 0.1);
+        overflow: hidden;
+      }
+      .score-bar span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #7da6cf 0%, #31597c 100%);
+      }
+      .score-bar--excellent span {
+        background: linear-gradient(90deg, #6f9dcf 0%, #336aa6 100%);
+      }
+      .score-bar--strong span {
+        background: linear-gradient(90deg, #88afd2 0%, #477eb2 100%);
+      }
+      .score-bar--good span {
+        background: linear-gradient(90deg, #a1bad2 0%, #6a92bb 100%);
+      }
+      .source-item span {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .viewer-shell {
+        position: fixed;
+        inset: 0;
+        display: none;
+        padding: 24px;
+        background: rgba(20, 31, 43, 0.56);
+        z-index: 30;
+      }
+      .viewer-shell.is-open {
+        display: block;
+      }
+      .viewer {
+        max-width: 1280px;
+        height: calc(100vh - 48px);
+        margin: 0 auto;
+        background: rgba(248, 251, 253, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 26px 72px rgba(16, 30, 42, 0.2);
+        display: flex;
+        flex-direction: column;
+      }
+      .viewer-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .viewer-body {
+        padding: 20px;
+        overflow: auto;
+      }
       @media (max-width: 1180px) {
-        main { padding: 20px 18px 60px; }
-        .layout { grid-template-columns: 1fr; gap: 24px; }
-        .side-column { position: static; gap: 18px; padding-left: 0; border-left: 0; }
-        .translation-col + .translation-col { border-left: 0; padding-left: 0; }
-        .panel-head { grid-template-columns: 1fr; }
-        .translation-compare { grid-template-columns: 1fr; }
+        main {
+          padding: 24px 20px 64px;
+        }
+        .report-shell {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+        .side-rail {
+          position: static;
+          padding-left: 0;
+          border-left: 0;
+        }
+        .translation-col + .translation-col {
+          padding-left: 0;
+          border-left: 0;
+        }
+        .panel-head {
+          grid-template-columns: 1fr;
+        }
+        .translation-compare {
+          grid-template-columns: 1fr;
+        }
       }
       @media (max-width: 900px) {
-        main { padding: 20px 16px 56px; }
-        .hero { padding: 6px 0 16px; }
-        .hero-top { grid-template-columns: 1fr; }
-        .hero-stats { min-width: 0; }
-        .layout { gap: 22px; }
-        h1 { font-size: 28px; }
+        main {
+          padding: 22px 16px 56px;
+        }
+        .hero {
+          padding-bottom: 16px;
+        }
+        .hero-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        h1 {
+          max-width: 100%;
+          font-size: clamp(2.3rem, 12vw, 3.2rem);
+        }
       }
     </style>
   </head>
   <body>
     <main>
       <section class="hero">
-        <div class="hero-top">
-          <div class="hero-copy">
-            <p class="eyebrow">Skill Inspector</p>
-            <h1>Skill Inspector</h1>
-            <p class="summary">用于在 agent 会话中分析单个 skill 来源，并生成结构化 `report.json` 与可阅读的 `report.html`。</p>
-          </div>
-          <dl class="hero-stats">
-            <div class="hero-stat"><dt>评分</dt><dd>91/100</dd></div>
-            <div class="hero-stat"><dt>风险</dt><dd class="tone-low">低风险</dd></div>
-            <div class="hero-stat"><dt>引用</dt><dd>4</dd></div>
-          </dl>
+        <div class="hero-copy">
+          <p class="eyebrow">Skill Inspector</p>
+          <h1>Skill Inspector</h1>
+          <p class="summary">Use when a skill link, skill file, or pasted skill content needs structural analysis, Chinese translation, scoring, safety review, reference tracing, or installation detection</p>
+          <p class="source-inline"><strong>Source:</strong> SKILL.md</p>
         </div>
+        <dl class="hero-metrics">
+          <div class="hero-stat">
+            <dt>评分</dt>
+            <dd>89/100</dd>
+          </div>
+          <div class="hero-stat">
+            <dt>风险</dt>
+            <dd>中风险</dd>
+          </div>
+          <div class="hero-stat">
+            <dt>引用</dt>
+            <dd>9</dd>
+          </div>
+          <div class="hero-stat">
+            <dt>翻译模式</dt>
+            <dd>compact</dd>
+          </div>
+        </dl>
       </section>
 
       <div class="nav-shell">
@@ -181,20 +621,20 @@
           <a class="nav-link" href="#suggestions">建议</a>
           <a class="nav-link" href="#install">安装</a>
           <a class="nav-link" href="#score">评分</a>
-          <a class="nav-link" href="#source">来源</a>
         </nav>
       </div>
 
-      <div class="layout">
+      <div class="report-shell">
         <div class="main-column">
-          <section class="panel workflow-panel" id="workflow">
-            <div class="panel-head">
-              <div>
+        <section class="panel workflow-panel" id="workflow">
+          <div class="panel-head">
+            <div>
                 <h2>执行逻辑流程图</h2>
-                <p class="muted">这版纯 skill 工作流以 JSON 为先，再由 HTML 模板承接最终展示；引用的触发条件已优先体现在 Mermaid 边标签中。</p>
-              </div>
-              <button class="viewer-trigger" type="button" data-open-viewer="mermaid-viewer">全屏查看</button>
+              <!-- Trigger conditions for references should be expressed on Mermaid edges whenever available. -->
+              <p class="muted">当前 skill 的主路径由归一化、草稿生成、overlay 补充、最终合并和 HTML 渲染组成。schema、template 与 prompts 分别约束结构、展示和判断型内容。</p>
             </div>
+            <button class="viewer-trigger" type="button" data-open-viewer="mermaid-viewer">全屏查看</button>
+          </div>
             <div class="graph-shell"><div id="workflow-graph"></div></div>
           </section>
 
@@ -205,256 +645,352 @@
                 <p class="muted">按内容段落展开，保持中文与原文左右对照。</p>
               </div>
             </div>
-
-            <article class="translation-block" id="translation-1">
-              <h3>概述</h3>
+            
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>概述</h3>
+                  <p class="muted">Overview</p>
+                </div>
+              </div>
               <div class="translation-compare">
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">一次分析一个 skill 来源，并生成结构化的 `report.json` 与整理好的 `report.html`。</div></div>
-                  <div class="translation-block-row"><div class="translation-text">这是一个 agent-native 版本，不依赖 Python 分析脚本，而是要求当前 agent 按模板和 schema 完成分析。</div></div>
+              <div class="translation-block-row"><div class="translation-text">这份 skill 用来分析单个 skill 来源，并产出结构化 `report.json` 与可读 `report.html`。</div></div>
+              <div class="translation-block-row"><div class="translation-text">当前版本采用 agent-native 流程，判断型内容通过 overlay 补充，结构和展示由仓库内模板与 schema 约束。</div></div>
                 </div>
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Analyze one skill source at a time and produce a structured `report.json` and a polished `report.html`.</div></div>
-                  <div class="translation-block-row"><div class="translation-original">This version is agent-native. Do not rely on Python analysis scripts. Use the templates and schema in this directory and let the current agent perform the analysis.</div></div>
+              <div class="translation-block-row"><div class="translation-original">Analyze one skill source at a time and produce a structured `report.json` and a polished `report.html`.</div></div>
+              <div class="translation-block-row"><div class="translation-original">This version is agent-native. Use the templates and schema in this directory and let the current agent perform the analysis.</div></div>
                 </div>
               </div>
             </article>
 
-            <article class="translation-block" id="translation-2">
-              <h3>输入</h3>
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>输入</h3>
+                  <p class="muted">Inputs</p>
+                </div>
+              </div>
               <div class="translation-compare">
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">支持的输入包括：</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 粘贴的 skill 全文</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 本地 skill 文件路径</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 远程 skill 链接</div></div>
+              <div class="translation-block-row"><div class="translation-text">支持三类输入：贴入的 skill 全文、本地 skill 文件路径、远程 skill 链接。</div></div>
                 </div>
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Supported inputs:</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- pasted skill text</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- local path to a skill file</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- remote skill link</div></div>
+              <div class="translation-block-row"><div class="translation-original">Supported inputs: pasted skill text, local path to a skill file, and remote skill link.</div></div>
                 </div>
               </div>
             </article>
 
-            <article class="translation-block" id="translation-3">
-              <h3>必经流程</h3>
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>主工作流</h3>
+                  <p class="muted">Required Workflow</p>
+                </div>
+              </div>
               <div class="translation-compare">
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">先读取并归一化目标 skill，抽出标题、frontmatter、section、命令、引用和 workflow 线索。</div></div>
-                  <div class="translation-block-row"><div class="translation-text">不要立刻生成最终报告。</div></div>
+              <div class="translation-block-row"><div class="translation-text">第一步读取并归一化来源，提取 title、frontmatter、sections、commands、references 和 workflow signals，并生成紧凑工作集与 `reportSeeds`。</div></div>
+              <div class="translation-block-row"><div class="translation-text">第二步先生成符合 `templates/report.schema.json` 的 `report.json` 结构，workflow 以 `nodes` 和 `edges` 为标准表示，`install` 作为确定性本机目录检查字段。</div></div>
+              <div class="translation-block-row"><div class="translation-text">第三步用 `templates/report.html` 渲染 HTML，workflow 是主区块，translation 是次区块，meta 区块保持紧凑。</div></div>
+              <div class="translation-block-row"><div class="translation-text">第四步写出 `out/report.json` 与 `out/report.html`，可选链路还包括 `normalize-skill`、`build-report-draft`、`build-report-overlay-template`、`finalize-report` 四段预处理。</div></div>
                 </div>
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Read and normalize the source first. Extract title, frontmatter, sections, commands, references, and workflow signals.</div></div>
-                  <div class="translation-block-row"><div class="translation-original">Do not generate the final report yet.</div></div>
+              <div class="translation-block-row"><div class="translation-original">Step 1 reads and normalizes the source, extracting title, frontmatter, sections, commands, references, and workflow signals into a compact working set with `reportSeeds`.</div></div>
+              <div class="translation-block-row"><div class="translation-original">Step 2 builds a schema-shaped `report.json`, treats workflow graph data as the canonical representation, and keeps `install` as a deterministic local-directory check.</div></div>
+              <div class="translation-block-row"><div class="translation-original">Step 3 fills `templates/report.html`, keeping workflow as the primary section, translation as the secondary section, and meta sections compact.</div></div>
+              <div class="translation-block-row"><div class="translation-original">Step 4 writes `out/report.json` and `out/report.html`, with optional helper stages for normalization, draft generation, overlay templating, and finalization.</div></div>
                 </div>
               </div>
             </article>
 
-            <article class="translation-block" id="translation-4">
-              <h3>步骤 2：先生成结构化 JSON</h3>
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>翻译与洞察规则</h3>
+                  <p class="muted">Translation and Insight Rules</p>
+                </div>
+              </div>
               <div class="translation-compare">
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">生成 HTML 之前，必须先创建一个符合 `templates/report.schema.json` 的 `report.json` 对象。</div></div>
-                  <div class="translation-block-row"><div class="translation-text">`report.json` 至少必须包含：</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `summary`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `workflow`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `translation`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `references`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `safety`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `install`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `score`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `suggestions`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- `source`</div></div>
-                  <div class="translation-block-row"><div class="translation-text">不能跳过这一步。</div></div>
+              <div class="translation-block-row"><div class="translation-text">翻译层加载 `prompts/translation.md`，中文要求简洁、准确、可读，commands、paths、URLs、variables 和 frontmatter keys 保持英文。</div></div>
+              <div class="translation-block-row"><div class="translation-text">洞察层加载 `prompts/insights.md`，重点产出简短具体的 suggestions，并围绕结构、引用、安全边界和可维护性给出判断。</div></div>
                 </div>
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Before generating HTML, create a `report.json` object that conforms to `templates/report.schema.json`.</div></div>
-                  <div class="translation-block-row"><div class="translation-original">The JSON must include, at minimum:</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `summary`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `workflow`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `translation`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `references`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `safety`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `install`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `score`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `suggestions`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- `source`</div></div>
-                  <div class="translation-block-row"><div class="translation-original">Do not skip this step.</div></div>
+              <div class="translation-block-row"><div class="translation-original">Translation loads `prompts/translation.md`, keeps Chinese concise and readable, and preserves commands, paths, URLs, variables, and frontmatter keys in English.</div></div>
+              <div class="translation-block-row"><div class="translation-original">Insights load `prompts/insights.md`, generate short concrete suggestions, and evaluate structure, references, safety boundaries, and maintainability.</div></div>
                 </div>
               </div>
             </article>
 
-            <article class="translation-block" id="translation-5">
-              <h3>步骤 3：填充 HTML 模板</h3>
-              <div class="translation-compare">
-                <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">使用 `templates/report.html`。</div></div>
-                  <div class="translation-block-row"><div class="translation-text">规则：</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 保留模板结构</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 只填充占位内容</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 保持流程图作为主区</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 保持翻译作为次主区</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 保持 meta 区紧凑</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 保持安装区可见</div></div>
-                </div>
-                <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Use `templates/report.html`.</div></div>
-                  <div class="translation-block-row"><div class="translation-original">Rules:</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Preserve the template structure</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Fill placeholders only</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Keep the workflow diagram as the primary section</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Keep translation as the secondary section</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Keep meta sections compact</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Keep the install section visible in the meta area</div></div>
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>输出契约</h3>
+                  <p class="muted">Output Constraints</p>
                 </div>
               </div>
-            </article>
-
-            <article class="translation-block" id="translation-6">
-              <h3>步骤 4：写出结果</h3>
               <div class="translation-compare">
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">最终写出：`out/report.json` 与 `out/report.html`。</div></div>
+              <div class="translation-block-row"><div class="translation-text">`report.json` 是唯一规范分析输出，HTML 必须忠实反映 JSON。</div></div>
+              <div class="translation-block-row"><div class="translation-text">输出层要求引用去重、证据精简、至少一条具体建议，以及始终提供 `install` 结果。</div></div>
+              <div class="translation-block-row"><div class="translation-text">内嵌 `&lt;script type=&quot;application/json&quot;&gt;` 的 JSON 需要保持 `JSON.parse` 兼容，并处理脚本上下文转义。</div></div>
                 </div>
                 <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Write: `out/report.json` and `out/report.html`.</div></div>
-                </div>
-              </div>
-            </article>
-
-            <article class="translation-block" id="translation-7">
-              <h3>翻译规则</h3>
-              <div class="translation-compare">
-                <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">需要读取 `prompts/translation.md`。</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 中文应当简洁、准确、可读</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 产品名、框架名、工具名、命令、路径、URL、变量名和 frontmatter key 保持英文</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 不要总结</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 不要额外解释</div></div>
-                </div>
-                <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Load `prompts/translation.md`.</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Chinese should be concise, accurate, and readable</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Product names, framework names, tool names, commands, paths, URLs, variables, and frontmatter keys stay in English</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Do not summarize</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Do not add explanation</div></div>
-                </div>
-              </div>
-            </article>
-
-            <article class="translation-block" id="translation-8">
-              <h3>建议规则</h3>
-              <div class="translation-compare">
-                <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">需要读取 `prompts/insights.md`。</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 建议必须简短、具体、可执行</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 重点关注结构、引用、安全边界和可维护性</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 避免泛泛而谈</div></div>
-                  <div class="translation-block-row"><div class="translation-text">引用附录以 `summary` 为主说明，`condition` 主要放到 workflow / Mermaid 层；如果引用有触发条件，优先放到 Mermaid 边标签里，而不是在附录正文里重复。</div></div>
-                </div>
-                <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Load `prompts/insights.md`.</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Suggestions must be concrete and short</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Focus on structure, references, safety boundaries, and maintainability</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Avoid generic advice</div></div>
-                  <div class="translation-block-row"><div class="translation-original">Use `summary` as the primary appendix description for each reference. Keep `condition` primarily in the workflow / Mermaid layer. When a reference has a trigger condition, prefer showing it on Mermaid edges instead of repeating it in appendix prose.</div></div>
-                </div>
-              </div>
-            </article>
-
-            <article class="translation-block" id="translation-9">
-              <h3>输出约束</h3>
-              <div class="translation-compare">
-                <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-text">必须先生成 JSON，再生成 HTML；HTML 必须反映 JSON，而不是另起一套解释。</div></div>
-                  <div class="translation-block-row"><div class="translation-text">不要发明源文件里没有支持的 section；不要翻译命令、代码、路径、URL 或 frontmatter key。</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 引用需要去重，并保留最有信息量的 evidence line</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 必须始终给出至少一条具体建议</div></div>
-                  <div class="translation-block-row"><div class="translation-text">- 必须始终提供 `install` 结果，即使它是启发式或 `unknown`</div></div>
-                </div>
-                <div class="translation-col">
-                  <div class="translation-block-row"><div class="translation-original">Generate JSON first. HTML must reflect the JSON, not a separate interpretation.</div></div>
-                  <div class="translation-block-row"><div class="translation-original">Do not invent sections that are unsupported by the source. Do not translate commands, code, paths, URLs, or frontmatter keys.</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Deduplicate repeated references while preserving the most useful evidence line</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Always provide at least one concrete suggestion</div></div>
-                  <div class="translation-block-row"><div class="translation-original">- Always provide an `install` result, even when it is heuristic or `unknown`</div></div>
+              <div class="translation-block-row"><div class="translation-original">`report.json` is the canonical analysis output and HTML must reflect it faithfully.</div></div>
+              <div class="translation-block-row"><div class="translation-original">The output contract requires deduplicated references, compact evidence, at least one concrete suggestion, and an `install` result in every run.</div></div>
+              <div class="translation-block-row"><div class="translation-original">Embedded `&lt;script type=&quot;application/json&quot;&gt;` payloads must stay `JSON.parse` compatible and escape script-context hazards correctly.</div></div>
                 </div>
               </div>
             </article>
           </section>
         </div>
 
-        <aside class="side-column">
+        <aside class="side-rail">
           <div class="appendix-head">
             <p class="section-kicker">附录</p>
           </div>
           <section class="meta-card" id="references">
             <h2>引用关系</h2>
+            <!-- Preferred appendix rendering:
+                 target -> one-sentence summary -> kind
+                 Keep trigger conditions in Mermaid edges rather than repeating them here. -->
             <div class="meta-stack">
-              <article class="meta-row"><strong>templates/report.schema.json</strong><div class="meta-copy">定义最终 `report.json` 的必填字段与约束，是结构化输出的主依据。</div><span class="muted">类型 file</span></article>
-              <article class="meta-row"><strong>templates/report.html</strong><div class="meta-copy">定义最终报告页面的骨架与版式，要求 agent 只填充内容而不改动整体结构。</div><span class="muted">类型 file</span></article>
-              <article class="meta-row"><strong>prompts/translation.md</strong><div class="meta-copy">约束翻译语气、术语保留和不可翻译内容，是中文输出的主要语言规范。</div><span class="muted">类型 file</span></article>
-              <article class="meta-row"><strong>prompts/insights.md</strong><div class="meta-copy">约束建议、评分说明和安全表达方式，帮助输出更具体且可执行的结论。</div><span class="muted">类型 file</span></article>
+            <div class="meta-row">
+              <strong>scripts/normalize-skill.mjs</strong>
+              <div class="meta-copy">归一化脚本，负责提取结构信号并生成 `reportSeeds`。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L44</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>templates/report.schema.json</strong>
+              <div class="meta-copy">最终 `report.json` 的结构契约，约束必填字段和 workflow / translation / safety 等对象形状。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L61</span>
+                <span class="reference-tag reference-tag--condition">需要输出结构约束时加载</span>
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>prompts/workflow-generation.md</strong>
+              <div class="meta-copy">workflow 需要语言级语义判断时使用的提示文件。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L81</span>
+                <span class="reference-tag reference-tag--condition">需要复杂流程图语义时加载</span>
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>templates/report.html</strong>
+              <div class="meta-copy">报告页面模板，定义 HTML 展示骨架和区块布局。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L106</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>out/report.json</strong>
+              <div class="meta-copy">最终结构化分析输出。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L123</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>out/report.html</strong>
+              <div class="meta-copy">最终可读报告输出。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L124</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>report.overlay.json</strong>
+              <div class="meta-copy">判断型补丁文件，集中承载 workflow、translation、safety、score 与 suggestions。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L137</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>prompts/translation.md</strong>
+              <div class="meta-copy">中文翻译规则文件，约束术语保留和表达风格。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L144</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>prompts/insights.md</strong>
+              <div class="meta-copy">评分、建议与安全表达规则文件。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L157</span>
+                
+              </div>
+            </div>
             </div>
           </section>
 
           <section class="meta-card" id="safety">
             <h2>安全评估</h2>
+            <!-- Preferred rendering:
+                 1. a safety summary block for the current risk level
+                 2. one row per concrete finding below it -->
+            
+            <div class="safety-summary tone-medium">
+              <strong>中风险</strong>
+              <div class="meta-copy">这份 skill 的执行面集中在本地文件读取、远程 skill 链接抓取、JSON 合并校验和本地 HTML 渲染。整体边界清楚，风险主要来自远程内容抓取和多段脚本写出链路。</div>
+            </div>
             <div class="meta-stack">
-              <div class="safety-summary">
-                <strong class="tone-low">低风险</strong>
-                <div class="meta-copy">当前输出主要受固定 schema 和 HTML 模板约束，暂未识别出明显高危操作或高权限依赖。</div>
-              </div>
-              <article class="meta-row">
+              <div class="meta-row">
                 <div class="safety-finding-title">
-                  <strong>template-controlled-output</strong>
-                  <span class="safety-severity tone-low">低风险</span>
+                  <strong>remote-source-fetch</strong>
+                  <span class="safety-severity">medium</span>
                 </div>
-                <span class="muted">输出结构受模板和 schema 约束，内容漂移风险较低。</span>
-                <span class="muted">证据：The workflow constrains output through a fixed schema and HTML template.</span>
-              </article>
+                <div class="meta-copy">来源支持远程 skill 链接，并对 GitHub raw 与页面回退做抓取处理，执行方需要保证来源可信和读取范围可控。</div>
+                <div class="muted">证据: L49-L53: GitHub raw rewrite and fallback rules</div>
+              </div>
+
+              <div class="meta-row">
+                <div class="safety-finding-title">
+                  <strong>local-output-pipeline</strong>
+                  <span class="safety-severity">medium</span>
+                </div>
+                <div class="meta-copy">可选预处理链路会生成 `normalized-source.json`、`report.draft.json`、`report.overlay.template.json`、`report.json` 和 `report.html`，属于受控的本地写出流程。</div>
+                <div class="muted">证据: L123-L137: staged output and helper commands are explicitly listed</div>
+              </div>
+
+              <div class="meta-row">
+                <div class="safety-finding-title">
+                  <strong>embedded-json-rendering</strong>
+                  <span class="safety-severity">medium</span>
+                </div>
+                <div class="meta-copy">HTML 渲染明确涉及 `&lt;script type=&quot;application/json&quot;&gt;` 内嵌 JSON，因此脚本上下文转义和 JSON 解析一致性是关键边界。</div>
+                <div class="muted">证据: L117: JSON.parse-compatible script embedding rule</div>
+              </div>
             </div>
           </section>
 
           <section class="meta-card" id="suggestions">
             <h2>优化建议</h2>
             <div class="meta-stack">
-              <article class="meta-row"><strong>补充 install 判定说明</strong><span class="muted">建议在 `SKILL.md` 或 schema 示例中明确 install 结果如何给出 `installed / not_found / unknown`，减少不同 agent 的自由发挥。</span></article>
-              <article class="meta-row"><strong>增加占位约定说明</strong><span class="muted">建议补一段模板占位约定，明确 `translation_sections_html`、`references_html`、`install_html` 这类区域由谁、以什么格式填充。</span></article>
-              <article class="meta-row"><strong>给出去重示例</strong><span class="muted">建议在 examples 中加入“同一引用在不同语境下去重后如何保留最有信息量的 evidence line”的示例。</span></article>
+            <div class="meta-row">
+              <strong>收紧结果文件级引用抽取</strong>
+              <div class="meta-copy">把 `report.json` 和 `report.html` 这类结果文件名与真正依赖引用分层处理，能让 references 更聚焦。</div>
+              <div class="muted">优先级: medium</div>
+            </div>
+
+            <div class="meta-row">
+              <strong>补一份完整自检 overlay 示例</strong>
+              <div class="meta-copy">增加一份覆盖 workflow、translation、safety、score 和 suggestions 的真实 overlay 示例，能加快首次接入。</div>
+              <div class="muted">优先级: medium</div>
+            </div>
+
+            <div class="meta-row">
+              <strong>把主流程与可选 helper 流程分成两个图区</strong>
+              <div class="meta-copy">当前文档同时描述主路径和 helper 链路，分成两个独立图区会让阅读路径更稳定。</div>
+              <div class="muted">优先级: low</div>
+            </div>
             </div>
           </section>
 
           <section class="meta-card" id="install">
             <h2>安装情况</h2>
+            <!-- Preferred rendering:
+                 itemized platform rows only.
+                 Do not add a separate summary block when the result is already obvious. -->
             <div class="status-grid">
-              <div class="status-row"><strong>Codex</strong><span class="muted">未知</span></div>
-              <div class="status-row"><strong>Claude</strong><span class="muted">未知</span></div>
-              <div class="status-row"><strong>Gemini</strong><span class="muted">未知</span></div>
+            <div class="status-row">
+              <div>
+                <strong>Codex</strong>
+                <div class="muted">/Users/paulameng/.codex/skills/skill-inspector</div>
+              </div>
+              <span>未安装</span>
+            </div>
+
+            <div class="status-row">
+              <div>
+                <strong>Agents</strong>
+                <div class="muted">/Users/paulameng/.agents/skills/skill-inspector</div>
+              </div>
+              <span>未安装</span>
+            </div>
             </div>
           </section>
 
           <section class="meta-card" id="score">
             <h2>评分维度</h2>
-            <div class="meta-stack">
-              <div class="score-summary score-summary--excellent">
-                <strong>91 / 100</strong>
-                <div class="meta-copy">整体结构清晰、主次稳定，当前最主要的提升空间集中在 install 判定说明与模板占位约定的进一步细化。</div>
-              </div>
-              <div class="score-row"><div class="score-row-head"><strong class="score-label">触发条件清晰度</strong><span class="score-value">18/20</span></div><div class="score-bar score-bar--strong"><span style="width: 90%"></span></div></div>
-              <div class="score-row"><div class="score-row-head"><strong class="score-label">结构完整性</strong><span class="score-value">20/20</span></div><div class="score-bar score-bar--excellent"><span style="width: 100%"></span></div></div>
-              <div class="score-row"><div class="score-row-head"><strong class="score-label">执行指引清晰度</strong><span class="score-value">18/20</span></div><div class="score-bar score-bar--strong"><span style="width: 90%"></span></div></div>
-              <div class="score-row"><div class="score-row-head"><strong class="score-label">引用卫生度</strong><span class="score-value">17/20</span></div><div class="score-bar score-bar--good"><span style="width: 85%"></span></div></div>
-              <div class="score-row"><div class="score-row-head"><strong class="score-label">可维护性</strong><span class="score-value">18/20</span></div><div class="score-bar score-bar--strong"><span style="width: 90%"></span></div></div>
+            <!-- Preferred rendering:
+                 1. one summary block for the overall score impression
+                 2. itemized scoring rows below with user-friendly Chinese labels and semantic color differences -->
+            
+            <div class="score-summary score-summary--strong">
+              <strong>89/100</strong>
+              <div class="meta-copy">整体质量较强，适合在补齐少量边界说明后稳定使用。</div>
             </div>
-          </section>
+            <div class="meta-stack">
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">trigger_clarity</strong>
+                  <span class="score-value">18/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
+                <div class="meta-copy">frontmatter description 直接写清了适用输入和任务类型，触发边界明确。</div>
+              </div>
 
-          <section class="meta-card" id="source">
-            <h2>来源信息</h2>
-            <div class="source-list">
-              <div class="source-item"><span>本地路径</span><strong>SKILL.md</strong></div>
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">workflow_clarity</strong>
+                  <span class="score-value">18/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
+                <div class="meta-copy">主路径覆盖归一化、JSON 生成、HTML 渲染和输出写入，辅助链路也给了明确命令。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">output_contract</strong>
+                  <span class="score-value">19/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:95%"></span></div>
+                <div class="meta-copy">`report.json` 作为唯一真源的约束清楚，HTML 与 JSON 的关系表达稳定。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">reference_hygiene</strong>
+                  <span class="score-value">16/20</span>
+                </div>
+                <div class="score-bar score-summary--strong"><span style="width:80%"></span></div>
+                <div class="meta-copy">关键模板、schema、prompts 和输出文件都有引用。当前来源文本里也出现了结果文件名级别的轻量引用信号。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">maintainability</strong>
+                  <span class="score-value">18/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
+                <div class="meta-copy">脚本链路拆分明确，draft、overlay template 和 finalize 的职责边界清晰。</div>
+              </div>
             </div>
           </section>
         </aside>
@@ -464,10 +1000,15 @@
     <div class="viewer-shell" id="mermaid-viewer" aria-hidden="true">
       <div class="viewer">
         <div class="viewer-head">
-          <div><p class="section-kicker">全屏查看</p><h2>执行逻辑流程图</h2></div>
+          <div>
+            <p class="section-kicker">全屏查看</p>
+            <h2>执行逻辑流程图</h2>
+          </div>
           <button class="viewer-close" type="button" data-close-viewer="mermaid-viewer">关闭</button>
         </div>
-        <div class="viewer-body"><div class="graph-shell"><div id="viewer-graph"></div></div></div>
+        <div class="viewer-body">
+          <div class="graph-shell"><div id="viewer-graph"></div></div>
+        </div>
       </div>
     </div>
 
@@ -475,12 +1016,38 @@
       (() => {
         const openButtons = document.querySelectorAll("[data-open-viewer]");
         const closeButtons = document.querySelectorAll("[data-close-viewer]");
-        const closeViewer = (viewer) => { viewer.classList.remove("is-open"); viewer.setAttribute("aria-hidden", "true"); document.body.style.overflow = ""; };
-        const openViewer = (viewer) => { viewer.classList.add("is-open"); viewer.setAttribute("aria-hidden", "false"); document.body.style.overflow = "hidden"; };
-        openButtons.forEach((button) => button.addEventListener("click", () => { const viewer = document.getElementById(button.dataset.openViewer); if (viewer) openViewer(viewer); }));
-        closeButtons.forEach((button) => button.addEventListener("click", () => { const viewer = document.getElementById(button.dataset.closeViewer); if (viewer) closeViewer(viewer); }));
-        document.querySelectorAll(".viewer-shell").forEach((viewer) => viewer.addEventListener("click", (event) => { if (event.target === viewer) closeViewer(viewer); }));
-        document.addEventListener("keydown", (event) => { if (event.key === "Escape") document.querySelectorAll(".viewer-shell.is-open").forEach((viewer) => closeViewer(viewer)); });
+        const closeViewer = (viewer) => {
+          viewer.classList.remove("is-open");
+          viewer.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
+        };
+        const openViewer = (viewer) => {
+          viewer.classList.add("is-open");
+          viewer.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+        };
+        openButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const viewer = document.getElementById(button.dataset.openViewer);
+            if (viewer) openViewer(viewer);
+          });
+        });
+        closeButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const viewer = document.getElementById(button.dataset.closeViewer);
+            if (viewer) closeViewer(viewer);
+          });
+        });
+        document.querySelectorAll(".viewer-shell").forEach((viewer) => {
+          viewer.addEventListener("click", (event) => {
+            if (event.target === viewer) closeViewer(viewer);
+          });
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            document.querySelectorAll(".viewer-shell.is-open").forEach((viewer) => closeViewer(viewer));
+          }
+        });
       })();
     </script>
   </body>
