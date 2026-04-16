@@ -235,3 +235,101 @@ test('rendered report shows reference kind and line as compact tags', () => {
   assert.doesNotMatch(html, /类型:/);
   assert.doesNotMatch(html, /证据:/);
 });
+
+test('rendered report moves source info into the hero area and links URLs', () => {
+  const fixtureDir = path.join(root, 'out', 'source-inline-fixture');
+  const fixtureReportPath = path.join(fixtureDir, 'report.json');
+  const fixtureOutputPath = path.join(fixtureDir, 'report.html');
+
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.writeFileSync(
+    fixtureReportPath,
+    JSON.stringify(
+      {
+        summary: {
+          title: 'Source Inline Skill',
+          purpose: 'fixture purpose',
+          score_total: 81,
+          risk_level: '低风险'
+        },
+        workflow: {
+          caption: 'fixture caption',
+          nodes: [
+            { id: 'input', label: 'Read source' }
+          ],
+          edges: []
+        },
+        translation: {
+          mode: 'compact',
+          sections: []
+        },
+        references: [],
+        safety: {
+          level_code: 'low',
+          level_label: '低风险',
+          level_summary: 'fixture safety',
+          findings: []
+        },
+        install: { items: [] },
+        score: { dimensions: [] },
+        suggestions: [],
+        source: {
+          primary_label: '原始链接',
+          primary_value: 'https://example.com/source'
+        }
+      },
+      null,
+      2
+    )
+  );
+
+  execFileSync('node', [scriptPath, fixtureReportPath, fixtureOutputPath], { cwd: root });
+
+  const html = fs.readFileSync(fixtureOutputPath, 'utf8');
+
+  assert.match(html, /<strong>Source:<\/strong>/);
+  assert.match(html, /href="https:\/\/example\.com\/source"/);
+  assert.doesNotMatch(html, /<section class="meta-card" id="source">/);
+  assert.doesNotMatch(html, /href="#source"/);
+});
+
+test('rendered report uses the paper-column layout shell', () => {
+  execFileSync('node', [scriptPath, reportPath, outputPath], { cwd: root });
+
+  const html = fs.readFileSync(outputPath, 'utf8');
+
+  assert.match(html, /class="hero-metrics"/);
+  assert.match(html, /class="report-shell"/);
+  assert.match(html, /class="side-rail"/);
+  assert.match(html, /<section class="panel workflow-panel" id="workflow">/);
+});
+
+test('rendered report configures mermaid with the paper-column palette', () => {
+  execFileSync('node', [scriptPath, reportPath, outputPath], { cwd: root });
+
+  const html = fs.readFileSync(outputPath, 'utf8');
+
+  assert.match(html, /theme:\s*"base"/);
+  assert.match(html, /primaryColor:\s*"#edf4fa"/);
+  assert.match(html, /primaryTextColor:\s*"#223446"/);
+});
+
+test('rendered report reduces decorative accents and keeps the graph surface white', () => {
+  execFileSync('node', [scriptPath, reportPath, outputPath], { cwd: root });
+
+  const html = fs.readFileSync(outputPath, 'utf8');
+
+  assert.doesNotMatch(html, /max-width:\s*12ch/);
+  assert.doesNotMatch(html, /\.hero::after/);
+  assert.doesNotMatch(html, /\.panel h2::after/);
+  assert.match(html, /\.graph-shell\s*\{[\s\S]*background:\s*#fff;/);
+});
+
+test('rendered report gives the anchor nav a light translucent background with blur', () => {
+  execFileSync('node', [scriptPath, reportPath, outputPath], { cwd: root });
+
+  const html = fs.readFileSync(outputPath, 'utf8');
+
+  assert.match(html, /\.nav-shell\s*\{[^}]*background:\s*rgba\(243, 248, 251, 0\.1\);/);
+  assert.match(html, /backdrop-filter:\s*blur\(10px\);/);
+});
