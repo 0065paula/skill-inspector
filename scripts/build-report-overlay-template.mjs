@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { siblingOutputPath } from './output-paths.mjs';
+
 export const buildReportOverlayTemplate = (draft) => ({
   summary: {
     score_total: draft.summary?.score_total ?? 0,
@@ -29,13 +31,15 @@ export const buildReportOverlayTemplate = (draft) => ({
 
 const main = () => {
   const [, , draftArg, outputArg] = process.argv;
-  if (!draftArg || !outputArg) {
-    console.error('Usage: node scripts/build-report-overlay-template.mjs <report.draft.json> <report.overlay.template.json>');
+  if (!draftArg) {
+    console.error('Usage: node scripts/build-report-overlay-template.mjs <report.draft.json> [report.overlay.template.json]');
     process.exit(1);
   }
 
   const draftPath = path.resolve(process.cwd(), draftArg);
-  const outputPath = path.resolve(process.cwd(), outputArg);
+  const outputPath = outputArg
+    ? path.resolve(process.cwd(), outputArg)
+    : siblingOutputPath(draftArg, 'report.overlay.template.json', process.cwd());
   const draft = JSON.parse(fs.readFileSync(draftPath, 'utf8'));
   const overlay = buildReportOverlayTemplate(draft);
 

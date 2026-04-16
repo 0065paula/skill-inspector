@@ -130,22 +130,28 @@ Rules:
 
 Write:
 
-- `out/report.json`
-- `out/report.html`
+- `%当前目录%/skill-inspector/%skill-name%/report.json`
+- `%当前目录%/skill-inspector/%skill-name%/report.html`
+
+Default output directory rule:
+
+- Use `%当前目录%/skill-inspector/%skill-name%/` as the default artifact root
+- Keep `normalized-source.json`, `report.draft.json`, `report.overlay.template.json`, `report.json`, and `report.html` under that directory
+- Respect explicit output paths when the caller provides them
 
 Optional preprocessing helper:
 
-- `node scripts/normalize-skill.mjs <input> out/normalized-source.json`
+- `node scripts/normalize-skill.mjs <input>`
 - Use the generated normalized JSON as the primary working context for extraction-heavy tasks
 - Reuse `reportSeeds` first, then spend model work on `translation.sections`, `safety`, `score`, and `suggestions`
-- `node scripts/build-report-draft.mjs out/normalized-source.json out/report.draft.json`
+- `node scripts/build-report-draft.mjs skill-inspector/<skill-name>/normalized-source.json`
 - Use the generated draft report as the starting point for the final `report.json`
-- `node scripts/build-report-overlay-template.mjs out/report.draft.json out/report.overlay.template.json`
+- `node scripts/build-report-overlay-template.mjs skill-inspector/<skill-name>/report.draft.json`
 - Use the overlay template as the preferred model input shape for judgment-heavy fields
 - Let the model fill `workflow` in the overlay when heuristic workflow extraction is too rigid or inaccurate
 - Prefer `translation.coverage: full_human` for complete translation with lower output token cost
 - Let the model write a small `report.overlay.json` that focuses on judgment-heavy fields
-- `node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json out/report.json`
+- `node scripts/finalize-report.mjs skill-inspector/<skill-name>/report.draft.json skill-inspector/<skill-name>/report.overlay.json`
 
 ## Evaluation Hints
 

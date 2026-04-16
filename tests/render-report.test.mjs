@@ -238,6 +238,20 @@ test('rendered report shows reference kind and line as compact tags', () => {
   assert.doesNotMatch(html, /证据:/);
 });
 
+test('render-report CLI writes report.html next to report.json by default', () => {
+  const fixtureDir = path.join(root, 'out', 'render-default-fixture');
+  const fixtureReportPath = path.join(fixtureDir, 'report.json');
+  const fixtureOutputPath = path.join(fixtureDir, 'report.html');
+
+  fs.rmSync(fixtureDir, { recursive: true, force: true });
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.copyFileSync(reportPath, fixtureReportPath);
+
+  execFileSync('node', [scriptPath, fixtureReportPath], { cwd: root });
+
+  assert.equal(fs.existsSync(fixtureOutputPath), true);
+});
+
 test('rendered report hardens side rail text against long unbroken content', () => {
   execFileSync('node', [scriptPath, reportPath, outputPath], { cwd: root });
 

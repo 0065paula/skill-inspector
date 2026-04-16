@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { siblingOutputPath } from './output-paths.mjs';
+
 const referenceSummary = (ref) => {
   const target = String(ref.target || '');
 
@@ -140,13 +142,15 @@ export const buildReportDraft = (normalized) => {
 
 const main = () => {
   const [, , inputArg, outputArg] = process.argv;
-  if (!inputArg || !outputArg) {
-    console.error('Usage: node scripts/build-report-draft.mjs <normalized-source.json> <report.draft.json>');
+  if (!inputArg) {
+    console.error('Usage: node scripts/build-report-draft.mjs <normalized-source.json> [report.draft.json]');
     process.exit(1);
   }
 
   const inputPath = path.resolve(process.cwd(), inputArg);
-  const outputPath = path.resolve(process.cwd(), outputArg);
+  const outputPath = outputArg
+    ? path.resolve(process.cwd(), outputArg)
+    : siblingOutputPath(inputArg, 'report.draft.json', process.cwd());
   const normalized = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   const draft = buildReportDraft(normalized);
 

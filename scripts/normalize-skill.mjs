@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { defaultSkillOutputDir, skillNameFromNormalized } from './output-paths.mjs';
+
 const GITHUB_BLOB_RE =
   /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/;
 const GITLAB_BLOB_RE =
@@ -577,8 +579,8 @@ const readLocalSkillSource = (input) => ({
 
 const main = async () => {
   const [, , inputArg, outputArg] = process.argv;
-  if (!inputArg || !outputArg) {
-    console.error('Usage: node scripts/normalize-skill.mjs <input> <output.json>');
+  if (!inputArg) {
+    console.error('Usage: node scripts/normalize-skill.mjs <input> [output.json]');
     process.exit(1);
   }
 
@@ -591,8 +593,15 @@ const main = async () => {
     resolvedSource: source.resolvedUrl || source.resolvedPath
   });
 
-  fs.mkdirSync(path.dirname(path.resolve(process.cwd(), outputArg)), { recursive: true });
-  fs.writeFileSync(path.resolve(process.cwd(), outputArg), `${JSON.stringify(normalized, null, 2)}\n`);
+  const outputPath = outputArg
+    ? path.resolve(process.cwd(), outputArg)
+    : path.join(
+        defaultSkillOutputDir(skillNameFromNormalized(normalized), process.cwd()),
+        'normalized-source.json'
+      );
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, `${JSON.stringify(normalized, null, 2)}\n`);
 };
 
 if (import.meta.url === new URL(`file://${process.argv[1]}`).href) {

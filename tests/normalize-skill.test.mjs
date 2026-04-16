@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 import {
   normalizeSkillMarkdown,
@@ -12,6 +13,7 @@ import {
 
 const root = process.cwd();
 const samplePath = path.join(root, 'examples', 'sample-input.md');
+const normalizeScriptPath = path.join(root, 'scripts', 'normalize-skill.mjs');
 const sampleSource = fs.readFileSync(samplePath, 'utf8');
 const groupedWorkflowSource = `---
 name: grouped-workflow-skill
@@ -339,4 +341,24 @@ test('normalizeSkillMarkdown extracts bare markdown file names used as reference
     normalized.fileReferences.map((item) => item.target),
     ['design-reviewer.md']
   );
+});
+
+test('normalize-skill CLI writes to ./skill-inspector/<skill-name>/normalized-source.json by default', () => {
+  const cwd = path.join(root, 'out', 'normalize-default-dir');
+  const expectedPath = path.join(
+    cwd,
+    'skill-inspector',
+    'sample-generic-skill',
+    'normalized-source.json'
+  );
+
+  fs.rmSync(cwd, { recursive: true, force: true });
+  fs.mkdirSync(cwd, { recursive: true });
+
+  execFileSync('node', [normalizeScriptPath, samplePath], { cwd });
+
+  assert.equal(fs.existsSync(expectedPath), true);
+
+  const normalized = JSON.parse(fs.readFileSync(expectedPath, 'utf8'));
+  assert.equal(normalized.frontmatter.name, 'sample-generic-skill');
 });

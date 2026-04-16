@@ -93,3 +93,20 @@ test('build-report-overlay-template CLI writes the overlay template file', () =>
   assert.ok(Array.isArray(overlay.score.dimensions));
   assert.ok(Array.isArray(overlay.suggestions));
 });
+
+test('build-report-overlay-template CLI writes to the draft file directory by default', () => {
+  const fixtureDir = path.join(root, 'out', 'overlay-default-fixture');
+  const draftPath = path.join(fixtureDir, 'report.draft.json');
+  const overlayPath = path.join(fixtureDir, 'report.overlay.template.json');
+
+  fs.rmSync(fixtureDir, { recursive: true, force: true });
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.writeFileSync(draftPath, `${JSON.stringify(draft, null, 2)}\n`);
+
+  execFileSync('node', [overlayScriptPath, draftPath], { cwd: root });
+
+  assert.equal(fs.existsSync(overlayPath), true);
+
+  const overlay = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
+  assert.equal(overlay.summary.risk_level, '待评估');
+});

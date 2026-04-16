@@ -1,16 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { siblingOutputPath } from './output-paths.mjs';
+
 const [, , reportArg, outputArg] = process.argv;
 
-if (!reportArg || !outputArg) {
-  console.error('Usage: node scripts/render-report.mjs <report.json> <report.html>');
+if (!reportArg) {
+  console.error('Usage: node scripts/render-report.mjs <report.json> [report.html]');
   process.exit(1);
 }
 
 const cwd = process.cwd();
 const reportPath = path.resolve(cwd, reportArg);
-const outputPath = path.resolve(cwd, outputArg);
+const outputPath = outputArg
+  ? path.resolve(cwd, outputArg)
+  : siblingOutputPath(reportArg, 'report.html', cwd);
 const templatePath = path.resolve(cwd, 'templates/report.html');
 
 const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));

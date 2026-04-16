@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { siblingOutputPath } from './output-paths.mjs';
+
 const isPlainObject = (value) =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -135,14 +137,16 @@ export const finalizeReport = (draft, overlay = {}) => {
 
 const main = () => {
   const [, , draftArg, overlayArg, outputArg] = process.argv;
-  if (!draftArg || !overlayArg || !outputArg) {
-    console.error('Usage: node scripts/finalize-report.mjs <report.draft.json> <report.overlay.json> <report.json>');
+  if (!draftArg || !overlayArg) {
+    console.error('Usage: node scripts/finalize-report.mjs <report.draft.json> <report.overlay.json> [report.json]');
     process.exit(1);
   }
 
   const draftPath = path.resolve(process.cwd(), draftArg);
   const overlayPath = path.resolve(process.cwd(), overlayArg);
-  const outputPath = path.resolve(process.cwd(), outputArg);
+  const outputPath = outputArg
+    ? path.resolve(process.cwd(), outputArg)
+    : siblingOutputPath(overlayArg, 'report.json', process.cwd());
 
   const draft = JSON.parse(fs.readFileSync(draftPath, 'utf8'));
   const overlay = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));

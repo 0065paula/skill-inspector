@@ -117,6 +117,24 @@ test('build-report-draft CLI writes a schema-shaped draft report', () => {
   assert.equal(draft.translation.mode, 'full');
 });
 
+test('build-report-draft CLI writes to the normalized file directory by default', () => {
+  const cwd = path.join(root, 'out', 'draft-default-dir');
+  const targetDir = path.join(cwd, 'skill-inspector', 'sample-generic-skill');
+  const normalizedPath = path.join(targetDir, 'normalized-source.json');
+  const draftPath = path.join(targetDir, 'report.draft.json');
+
+  fs.rmSync(cwd, { recursive: true, force: true });
+  fs.mkdirSync(cwd, { recursive: true });
+
+  execFileSync('node', [normalizeScriptPath, samplePath], { cwd });
+  execFileSync('node', [draftScriptPath, normalizedPath], { cwd });
+
+  assert.equal(fs.existsSync(draftPath), true);
+
+  const draft = JSON.parse(fs.readFileSync(draftPath, 'utf8'));
+  assert.equal(draft.summary.title, 'Sample Generic Skill');
+});
+
 test('buildInstallItems reports installed status from codex and agents skill directories', () => {
   const fixtureDir = path.join(root, 'out', 'install-fixture');
   const codexBase = path.join(fixtureDir, 'codex-skills');
