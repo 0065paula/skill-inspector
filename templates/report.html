@@ -160,8 +160,7 @@
       }
       .hero-stat {
         margin: 0;
-        padding-top: 8px;
-        border-top: 2px solid rgba(68, 94, 119, 0.14);
+        padding-top: 0;
       }
       .hero-stat dt {
         margin: 0 0 8px;
@@ -362,6 +361,7 @@
       .status-row,
       .score-row,
       .source-item {
+        min-width: 0;
         padding: 0 0 12px;
         border-bottom: 1px dashed rgba(77, 101, 124, 0.16);
       }
@@ -377,6 +377,7 @@
         display: block;
         margin-bottom: 4px;
         word-break: break-word;
+        overflow-wrap: anywhere;
         font-size: 13px;
         line-height: 1.5;
       }
@@ -386,6 +387,11 @@
         gap: 12px;
         align-items: baseline;
         font-size: 13px;
+      }
+      .status-row > div,
+      .score-row-head > *,
+      .safety-finding-title > * {
+        min-width: 0;
       }
       .score-summary,
       .safety-summary {
@@ -446,23 +452,35 @@
         font-size: 12.5px;
         line-height: 1.68;
         color: #33485a;
+        overflow-wrap: anywhere;
       }
       .reference-tags {
-        display: grid;
-        gap: 3px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0;
         margin-top: 7px;
       }
       .reference-tag {
-        display: block;
+        display: inline-flex;
+        align-items: flex-start;
         padding: 0;
         border-radius: 0;
         border: 0;
         background: transparent;
         color: #718396;
         font-size: 10px;
-        line-height: 1.45;
+        line-height: 1.35;
         letter-spacing: 0.04em;
         text-transform: uppercase;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .reference-tag + .reference-tag::before {
+        content: "|";
+        display: inline-block;
+        margin: 0 6px;
+        color: #98a6b4;
       }
       .reference-tag--condition {
         color: #7d8791;
