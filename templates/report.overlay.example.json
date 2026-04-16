@@ -1,0 +1,54 @@
+{
+  "summary": {
+    "score_total": 88,
+    "risk_level": "低风险"
+  },
+  "workflow": {
+    "caption": "主流程围绕分析、评审和输出展开。",
+    "nodes": [],
+    "edges": []
+  },
+  "translation": {
+    "coverage": "full_human",
+    "sections": [
+      {
+        "title_zh": "概述",
+        "title_en": "Overview",
+        "rows": [
+          {
+            "zh": "一次分析一个 skill 来源，并生成结构化报告与可读报告。"
+          }
+        ]
+      }
+    ]
+  },
+  "safety": {
+    "level_code": "low",
+    "level_label": "低风险",
+    "level_summary": "主要动作集中在本地分析与结构化输出，风险边界清楚。",
+    "findings": [
+      {
+        "signal": "local-processing",
+        "severity": "low",
+        "meaning": "主要处理本地内容与报告文件。",
+        "evidence": "Reads one source and writes report artifacts."
+      }
+    ]
+  },
+  "score": {
+    "dimensions": [
+      {
+        "name": "workflow_clarity",
+        "value": 18,
+        "rationale": "执行路径清楚，结构稳定。"
+      }
+    ]
+  },
+  "suggestions": [
+    {
+      "title": "补充失败路径",
+      "detail": "为关键步骤补充失败处理和回退说明。",
+      "priority": "medium"
+    }
+  ]
+}

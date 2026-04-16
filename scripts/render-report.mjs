@@ -30,11 +30,58 @@ const escapeJsonForScriptTag = (value) =>
     .replace(/>/g, '\\u003e')
     .replace(/&/g, '\\u0026');
 
+const isUrl = (value) => /^https?:\/\//i.test(String(value));
+
+const toMermaidSafeLabel = (value) =>
+  String(value)
+    .replace(/`/g, '')
+    .replace(/[{}"]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const quoteMermaidLabel = (value) => JSON.stringify(toMermaidSafeLabel(value));
+
+const workflowNodeSyntax = (node) => {
+  const label = quoteMermaidLabel(node.label);
+  switch (node.kind) {
+    case 'decision':
+      return `${node.id}{${label}}`;
+    case 'terminal':
+      return `${node.id}([${label}])`;
+    case 'reference':
+      return `${node.id}[[${label}]]`;
+    default:
+      return `${node.id}[${label}]`;
+  }
+};
+
+const buildMermaidFromWorkflow = (workflow) => {
+  if (workflow.mermaid) return workflow.mermaid;
+
+  const nodes = Array.isArray(workflow.nodes) ? workflow.nodes : [];
+  const edges = Array.isArray(workflow.edges) ? workflow.edges : [];
+  const lines = ['flowchart TD'];
+
+  for (const node of nodes) {
+    lines.push(workflowNodeSyntax(node));
+  }
+
+  for (const edge of edges) {
+    const label = edge.label ? ` -->|${edge.label}| ` : ' --> ';
+    lines.push(`${edge.from}${label}${edge.to}`);
+  }
+
+  return lines.join('\n');
+};
+
 const scoreLevelClass = (score) => {
   if (score >= 90) return 'score-summary--excellent';
   if (score >= 80) return 'score-summary--strong';
   return 'score-summary--good';
 };
+
+const translationMode = report.translation.mode || 'full';
+const workflowMermaid = buildMermaidFromWorkflow(report.workflow);
 
 const translationSectionsHtml = report.translation.sections
   .map((section) => {
@@ -75,10 +122,11 @@ const referencesHtml = `<div class="meta-stack">${report.references
             <div class="meta-row">
               <strong>${escapeHtml(ref.target)}</strong>
               <div class="meta-copy">${escapeHtml(ref.summary)}</div>
-              <div class="muted">类型: ${escapeHtml(ref.kind)}${
-                ref.condition ? ` · 条件: ${escapeHtml(ref.condition)}` : ''
-              }</div>
-              <div class="muted">证据: ${escapeHtml(ref.line)}</div>
+              <div class="reference-tags">
+                <span class="reference-tag">${escapeHtml(ref.kind)}</span>
+                ${ref.line ? `<span class="reference-tag">${escapeHtml(ref.line)}</span>` : ''}
+                ${ref.condition ? `<span class="reference-tag reference-tag--condition">${escapeHtml(ref.condition)}</span>` : ''}
+              </div>
             </div>`
   )
   .join('\n')}
@@ -158,28 +206,26 @@ const scoreHtml = `
               .join('\n')}
             </div>`;
 
-const sourceHtml = `<div class="source-list">
-            <div class="source-item">
-              <span>${escapeHtml(report.source.primary_label)}</span>
-              <strong>${escapeHtml(report.source.primary_value)}</strong>
-            </div>
-          </div>`;
+const sourceInline = isUrl(report.source.primary_value)
+  ? `<a href="${escapeHtml(report.source.primary_value)}" target="_blank" rel="noreferrer">${escapeHtml(report.source.primary_value)}</a>`
+  : escapeHtml(report.source.primary_value);
 
 template = template
   .replaceAll('{{summary.title}}', escapeHtml(report.summary.title))
-  .replace('{{workflow.mermaid_json}}', escapeJsonForScriptTag(report.workflow.mermaid))
+  .replace('{{workflow.mermaid_json}}', escapeJsonForScriptTag(workflowMermaid))
   .replace('{{summary.purpose}}', escapeHtml(report.summary.purpose))
   .replace('{{summary.score_total}}', escapeHtml(String(report.summary.score_total)))
   .replace('{{summary.risk_level}}', escapeHtml(report.summary.risk_level))
   .replace('{{references_count}}', escapeHtml(String(report.references.length)))
+  .replace('{{translation_mode}}', escapeHtml(translationMode))
   .replace('{{workflow.caption}}', escapeHtml(report.workflow.caption))
+  .replace('{{source_inline}}', sourceInline)
   .replace('{{translation_sections_html}}', translationSectionsHtml)
   .replace('{{references_html}}', referencesHtml)
   .replace('{{safety_html}}', safetyHtml)
   .replace('{{suggestions_html}}', suggestionsHtml)
   .replace('{{install_html}}', installHtml)
-  .replace('{{score_html}}', scoreHtml)
-  .replace('{{source_html}}', sourceHtml);
+  .replace('{{score_html}}', scoreHtml);
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, template);

@@ -6,10 +6,21 @@
     "risk_level": "中风险"
   },
   "workflow": {
-    "mermaid": "flowchart TD\ninput[\"Input Source\"] --> parse[\"Normalize Skill\"]\nparse --> safety[\"Safety Review\"]\nsafety --> output[\"HTML + JSON Report\"]",
-    "caption": "流程图优先展示执行路径、分支条件与引用触发时机；当引用存在触发条件时，应优先体现在 Mermaid 边标签中。"
+    "caption": "流程图优先展示执行路径、分支条件与引用触发时机；当引用存在触发条件时，应优先体现在边标签中。",
+    "nodes": [
+      { "id": "input", "label": "Input Source" },
+      { "id": "parse", "label": "Normalize Skill" },
+      { "id": "safety", "label": "Safety Review" },
+      { "id": "output", "label": "HTML + JSON Report", "kind": "terminal" }
+    ],
+    "edges": [
+      { "from": "input", "to": "parse" },
+      { "from": "parse", "to": "safety" },
+      { "from": "safety", "to": "output" }
+    ]
   },
   "translation": {
+    "mode": "compact",
     "sections": [
       {
         "title_zh": "概述",
