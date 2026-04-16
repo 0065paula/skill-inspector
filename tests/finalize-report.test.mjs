@@ -110,6 +110,7 @@ test('finalizeReport deep-merges overlay content into the draft report', () => {
   assert.equal(result.translation.sections.length, 1);
   assert.equal(result.safety.level_code, 'low');
   assert.equal(result.safety.findings.length, 1);
+  assert.deepEqual(result.install.items, []);
   assert.equal(result.suggestions.length, 1);
   assert.doesNotThrow(() => validateReportShape(result));
 });
@@ -177,6 +178,29 @@ test('finalize-report CLI writes the merged final report', () => {
   assert.equal(output.workflow.caption, 'overlay workflow');
   assert.equal(output.translation.sections.length, 1);
   assert.equal(output.safety.level_code, 'low');
+});
+
+test('finalizeReport keeps install items from the draft even if overlay tries to replace them', () => {
+  const draftWithInstall = {
+    ...draft,
+    install: {
+      items: [
+        { platform: 'Codex', status: '已安装', note: '/tmp/codex/demo-skill' }
+      ]
+    }
+  };
+
+  const overlay = {
+    install: {
+      items: [
+        { platform: 'Codex', status: '错误', note: 'bad overlay' }
+      ]
+    }
+  };
+
+  const result = finalizeReport(draftWithInstall, overlay);
+
+  assert.deepEqual(result.install.items, draftWithInstall.install.items);
 });
 
 test('finalizeReport supports full_human translation overlays that reuse draft english sections', () => {

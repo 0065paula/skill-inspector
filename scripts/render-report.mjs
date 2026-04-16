@@ -30,6 +30,8 @@ const escapeJsonForScriptTag = (value) =>
     .replace(/>/g, '\\u003e')
     .replace(/&/g, '\\u0026');
 
+const isUrl = (value) => /^https?:\/\//i.test(String(value));
+
 const toMermaidSafeLabel = (value) =>
   String(value)
     .replace(/`/g, '')
@@ -204,12 +206,9 @@ const scoreHtml = `
               .join('\n')}
             </div>`;
 
-const sourceHtml = `<div class="source-list">
-            <div class="source-item">
-              <span>${escapeHtml(report.source.primary_label)}</span>
-              <strong>${escapeHtml(report.source.primary_value)}</strong>
-            </div>
-          </div>`;
+const sourceInline = isUrl(report.source.primary_value)
+  ? `<a href="${escapeHtml(report.source.primary_value)}" target="_blank" rel="noreferrer">${escapeHtml(report.source.primary_value)}</a>`
+  : escapeHtml(report.source.primary_value);
 
 template = template
   .replaceAll('{{summary.title}}', escapeHtml(report.summary.title))
@@ -220,13 +219,13 @@ template = template
   .replace('{{references_count}}', escapeHtml(String(report.references.length)))
   .replace('{{translation_mode}}', escapeHtml(translationMode))
   .replace('{{workflow.caption}}', escapeHtml(report.workflow.caption))
+  .replace('{{source_inline}}', sourceInline)
   .replace('{{translation_sections_html}}', translationSectionsHtml)
   .replace('{{references_html}}', referencesHtml)
   .replace('{{safety_html}}', safetyHtml)
   .replace('{{suggestions_html}}', suggestionsHtml)
   .replace('{{install_html}}', installHtml)
-  .replace('{{score_html}}', scoreHtml)
-  .replace('{{source_html}}', sourceHtml);
+  .replace('{{score_html}}', scoreHtml);
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, template);

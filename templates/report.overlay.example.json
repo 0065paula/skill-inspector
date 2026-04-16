@@ -35,15 +35,6 @@
       }
     ]
   },
-  "install": {
-    "items": [
-      {
-        "platform": "Codex",
-        "status": "未知",
-        "note": "需要结合实际安装目录判断。"
-      }
-    ]
-  },
   "score": {
     "dimensions": [
       {

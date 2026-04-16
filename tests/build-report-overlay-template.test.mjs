@@ -53,7 +53,6 @@ test('buildReportOverlayTemplate returns a small judgment-only overlay skeleton'
     'workflow',
     'translation',
     'safety',
-    'install',
     'score',
     'suggestions'
   ]);
@@ -67,7 +66,6 @@ test('buildReportOverlayTemplate returns a small judgment-only overlay skeleton'
     'level_summary',
     'findings'
   ]);
-  assert.deepEqual(Object.keys(overlay.install), ['items']);
   assert.deepEqual(Object.keys(overlay.score), ['dimensions']);
   assert.ok(Array.isArray(overlay.suggestions));
 });
@@ -92,7 +90,6 @@ test('build-report-overlay-template CLI writes the overlay template file', () =>
   assert.equal(overlay.translation.coverage, 'full_human');
   assert.ok(Array.isArray(overlay.translation.sections));
   assert.ok(Array.isArray(overlay.safety.findings));
-  assert.ok(Array.isArray(overlay.install.items));
   assert.ok(Array.isArray(overlay.score.dimensions));
   assert.ok(Array.isArray(overlay.suggestions));
 });

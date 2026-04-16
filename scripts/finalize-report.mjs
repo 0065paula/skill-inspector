@@ -125,8 +125,9 @@ export const validateReportShape = (report) => {
 };
 
 export const finalizeReport = (draft, overlay = {}) => {
+  const { install: _overlayInstall, ...overlayWithoutInstall } = overlay;
   const merged = deepMerge(draft, {
-    ...overlay,
+    ...overlayWithoutInstall,
     translation: mergeTranslation(draft.translation, overlay.translation)
   });
   return validateReportShape(merged);

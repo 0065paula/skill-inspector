@@ -21,9 +21,6 @@ export const buildReportOverlayTemplate = (draft) => ({
     level_summary: draft.safety?.level_summary ?? '待补充安全边界和风险判断。',
     findings: []
   },
-  install: {
-    items: []
-  },
   score: {
     dimensions: []
   },

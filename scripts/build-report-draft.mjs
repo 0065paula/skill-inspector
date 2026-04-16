@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 const referenceSummary = (ref) => {
@@ -50,6 +51,36 @@ const compactReferenceLine = (ref) => {
   return `L${match[1]}`;
 };
 
+export const buildInstallItems = (skillName, options = {}) => {
+  const homeDir = options.homeDir || os.homedir();
+  const codexBase = options.codexBase || path.join(homeDir, '.codex', 'skills');
+  const agentsBase = options.agentsBase || path.join(homeDir, '.agents', 'skills');
+  const existsSync = options.existsSync || fs.existsSync;
+
+  if (!skillName) {
+    return [
+      { platform: 'Codex', status: '未知', note: codexBase },
+      { platform: 'Agents', status: '未知', note: agentsBase }
+    ];
+  }
+
+  const codexPath = path.join(codexBase, skillName);
+  const agentsPath = path.join(agentsBase, skillName);
+
+  return [
+    {
+      platform: 'Codex',
+      status: existsSync(codexPath) ? '已安装' : '未安装',
+      note: codexPath
+    },
+    {
+      platform: 'Agents',
+      status: existsSync(agentsPath) ? '已安装' : '未安装',
+      note: agentsPath
+    }
+  ];
+};
+
 export const buildReportDraft = (normalized) => {
   const seeds = normalized.reportSeeds || {};
   const summarySeed = seeds.summary || {};
@@ -57,6 +88,7 @@ export const buildReportDraft = (normalized) => {
   const translationSeed = seeds.translation || {};
   const sourceSeed = seeds.source || {};
   const referencesSeed = Array.isArray(seeds.references) ? seeds.references : [];
+  const skillName = normalized.frontmatter?.name || normalized.title || '';
 
   return {
     summary: {
@@ -89,7 +121,7 @@ export const buildReportDraft = (normalized) => {
       findings: []
     },
     install: {
-      items: []
+      items: buildInstallItems(skillName)
     },
     score: {
       dimensions: []

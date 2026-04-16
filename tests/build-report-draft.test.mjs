@@ -5,7 +5,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 import { normalizeSkillMarkdown } from '../scripts/normalize-skill.mjs';
-import { buildReportDraft } from '../scripts/build-report-draft.mjs';
+import { buildInstallItems, buildReportDraft } from '../scripts/build-report-draft.mjs';
 
 const root = process.cwd();
 const normalizeScriptPath = path.join(root, 'scripts', 'normalize-skill.mjs');
@@ -115,4 +115,32 @@ test('build-report-draft CLI writes a schema-shaped draft report', () => {
   assert.ok(Array.isArray(draft.references));
   assert.ok(Array.isArray(draft.suggestions));
   assert.equal(draft.translation.mode, 'full');
+});
+
+test('buildInstallItems reports installed status from codex and agents skill directories', () => {
+  const fixtureDir = path.join(root, 'out', 'install-fixture');
+  const codexBase = path.join(fixtureDir, 'codex-skills');
+  const agentsBase = path.join(fixtureDir, 'agents-skills');
+  const skillName = 'demo-skill';
+
+  fs.mkdirSync(path.join(codexBase, skillName), { recursive: true });
+  fs.mkdirSync(agentsBase, { recursive: true });
+
+  const items = buildInstallItems(skillName, {
+    codexBase,
+    agentsBase
+  });
+
+  assert.deepEqual(items, [
+    {
+      platform: 'Codex',
+      status: '已安装',
+      note: path.join(codexBase, skillName)
+    },
+    {
+      platform: 'Agents',
+      status: '未安装',
+      note: path.join(agentsBase, skillName)
+    }
+  ]);
 });
