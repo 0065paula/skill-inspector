@@ -230,10 +230,24 @@ test('rendered report shows reference kind and line as compact tags', () => {
   const html = fs.readFileSync(fixtureOutputPath, 'utf8');
 
   assert.match(html, /reference-tags/);
+  assert.match(html, /reference-tags">\s*<span class="reference-tag">file<\/span>\s*<span class="reference-tag">L225<\/span>/);
+  assert.match(html, /\.reference-tag \+ \.reference-tag::before\s*\{[^}]*content:\s*"\|"/);
   assert.match(html, />file</);
   assert.match(html, />L225</);
   assert.doesNotMatch(html, /类型:/);
   assert.doesNotMatch(html, /证据:/);
+});
+
+test('rendered report hardens side rail text against long unbroken content', () => {
+  execFileSync('node', [scriptPath, reportPath, outputPath], { cwd: root });
+
+  const html = fs.readFileSync(outputPath, 'utf8');
+
+  assert.match(html, /\.meta-row,\s*\.status-row,\s*\.score-row,\s*\.source-item\s*\{[^}]*min-width:\s*0;/);
+  assert.match(html, /\.meta-row strong,\s*\.source-item strong\s*\{[^}]*overflow-wrap:\s*anywhere;/);
+  assert.match(html, /\.meta-copy\s*\{[^}]*overflow-wrap:\s*anywhere;/);
+  assert.match(html, /\.reference-tag\s*\{[^}]*overflow-wrap:\s*anywhere;/);
+  assert.match(html, /\.reference-tag\s*\{[^}]*white-space:\s*normal;/);
 });
 
 test('rendered report moves source info into the hero area and links URLs', () => {
@@ -322,6 +336,7 @@ test('rendered report reduces decorative accents and keeps the graph surface whi
   assert.doesNotMatch(html, /max-width:\s*12ch/);
   assert.doesNotMatch(html, /\.hero::after/);
   assert.doesNotMatch(html, /\.panel h2::after/);
+  assert.doesNotMatch(html, /\.hero-stat\s*\{[^}]*border-top:/);
   assert.match(html, /\.graph-shell\s*\{[\s\S]*background:\s*#fff;/);
 });
 
