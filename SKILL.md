@@ -1,6 +1,6 @@
 ---
 name: skill-inspector
-description: Use when a skill link, skill file, or pasted skill content needs structural analysis, Chinese translation, scoring, safety review, reference tracing, or installation detection
+description: Use for reviewing any unfamiliar skill source and turning it into a structured report with workflow maps, Chinese translation, safety findings, reference tracing, install detection, and publishable HTML. Trigger whenever the user asks to inspect a skill, understand what a skill does, map its workflow, translate a skill into Chinese, score skill quality, trace referenced files or links, or generate a shareable skill review page, even if they only ask for a report, an evaluation, or “what does this skill do?”
 ---
 
 # Skill Inspector
@@ -13,6 +13,16 @@ Analyze one skill source at a time and produce:
 - a polished `report.html`
 
 This version is agent-native. Do not rely on Python analysis scripts. Use the templates and schema in this directory and let the current agent perform the analysis.
+
+## Success Criteria
+
+Complete the run when all of these outcomes are present:
+
+- `report.json` exists and matches `templates/report.schema.json`
+- `workflow.nodes` and `workflow.edges` express the execution logic clearly
+- `translation` preserves commands, paths, URLs, variables, and frontmatter keys in English
+- `references`, `safety`, `install`, `score`, and `suggestions` are filled with source-backed content
+- `report.html` reflects the final JSON without drifting from it
 
 ## Inputs
 
@@ -136,6 +146,20 @@ Optional preprocessing helper:
 - Prefer `translation.coverage: full_human` for complete translation with lower output token cost
 - Let the model write a small `report.overlay.json` that focuses on judgment-heavy fields
 - `node scripts/finalize-report.mjs out/report.draft.json out/report.overlay.json out/report.json`
+
+## Evaluation Hints
+
+Use these prompts as the primary pressure tests for this skill:
+
+- Inspect a pasted skill and produce `report.json` plus `report.html`
+- Read a local `SKILL.md`, map its workflow, and explain what triggers it
+- Review a remote GitHub skill link, trace references, evaluate safety, and summarize whether the skill is worth using
+
+Strong runs share three characteristics:
+
+- they keep `report.json` as the canonical output
+- they express trigger conditions and reference conditions explicitly
+- they keep translation concise while preserving technical identifiers exactly
 
 ## Translation Rules
 

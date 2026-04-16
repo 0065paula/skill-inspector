@@ -455,30 +455,31 @@
         overflow-wrap: anywhere;
       }
       .reference-tags {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 0;
+        display: block;
+        min-width: 0;
         margin-top: 7px;
+        font-size: 10px;
+        line-height: 1.45;
+        color: #718396;
       }
       .reference-tag {
-        display: inline-flex;
-        align-items: flex-start;
+        display: inline;
         padding: 0;
         border-radius: 0;
         border: 0;
         background: transparent;
-        color: #718396;
-        font-size: 10px;
-        line-height: 1.35;
+        color: inherit;
+        font-size: inherit;
+        line-height: inherit;
         letter-spacing: 0.04em;
-        text-transform: uppercase;
+        text-transform: none;
         white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-word;
       }
       .reference-tag + .reference-tag::before {
         content: "|";
-        display: inline-block;
+        display: inline;
         margin: 0 6px;
         color: #98a6b4;
       }

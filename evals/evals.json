@@ -1,0 +1,40 @@
+{
+  "skill_name": "skill-inspector",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Inspect this pasted skill content and generate a structured review with workflow, references, safety findings, Chinese translation, and a readable HTML report.",
+      "expected_output": "A complete report pipeline run with `report.json` as the canonical analysis output and `report.html` rendered from it.",
+      "files": [],
+      "expectations": [
+        "The run produces a schema-shaped `report.json`",
+        "The workflow is expressed as structured nodes and edges",
+        "The final result includes both JSON and HTML outputs"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Read a local SKILL.md file, explain what triggers the skill, map the execution workflow, and identify the files or prompts it depends on.",
+      "expected_output": "A review that captures trigger conditions, workflow structure, references, and quality signals from a local skill file.",
+      "files": [
+        "SKILL.md"
+      ],
+      "expectations": [
+        "The report captures the skill purpose and trigger conditions",
+        "The report includes references with source-backed evidence",
+        "The workflow caption and graph describe execution logic clearly"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Inspect a remote GitHub skill link and tell me whether the skill is worth adopting. Include Chinese translation, safety review, install detection, and concrete improvement suggestions.",
+      "expected_output": "A remote-source analysis that rewrites GitHub blob links to raw links when possible, preserves the original source for traceability, and produces a decision-ready report.",
+      "files": [],
+      "expectations": [
+        "The report preserves source traceability for the remote link",
+        "The report includes safety, install, score, and suggestions",
+        "The translation keeps commands, paths, URLs, variables, and frontmatter keys in English"
+      ]
+    }
+  ]
+}
