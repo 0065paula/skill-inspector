@@ -249,6 +249,14 @@ overlay 侧支持三种覆盖策略：
 - 需要中英对照时，每一行中文都要保留对应英文 `en`
 - 不使用自定义翻译字段形状代替标准 rows 结构
 
+执行鲁棒性约束：
+
+- 先得到通过 schema 校验的 `report.json`，再继续 HTML 渲染
+- 不先生成自定义 report 结构再二次转换成标准结构
+- bilingual 输出时，`translation.sections[*].rows[*]` 同时保留 `zh` 与 `en`
+- 结构化 `workflow.nodes` / `workflow.edges` 是 Mermaid 的默认来源
+- 不把手写 Mermaid 或自定义 HTML 页面作为主路径
+
 ### 4. 引用关系整理
 
 引用层会把文件和 URL 统一整理进 `references`，并保留：
@@ -359,6 +367,7 @@ overlay 侧支持三种覆盖策略：
 - HTML 只从标准 `report.json` 渲染
 - Mermaid 优先由结构化 `workflow.nodes` 与 `workflow.edges` 推导
 - 模板页面只填占位符，不另起一套自定义 HTML 报告布局
+- 渲染前先检查 `report.json`、translation rows 和 workflow graph 数据是否完整
 
 这个脚本决定“结构化报告如何变成一页可读文档”。
 

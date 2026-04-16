@@ -110,6 +110,13 @@ Translation rules for report size:
 
 Do not skip this step.
 
+Validation rules before rendering:
+
+- Verify that `report.json` already conforms to `templates/report.schema.json`
+- Verify that `translation.sections[*].rows[*]` contains both `zh` and `en` when bilingual output is expected
+- Verify that `workflow.nodes` and `workflow.edges` exist before Mermaid rendering
+- If any of these checks fail, return to JSON correction before attempting HTML rendering
+
 Install rules:
 
 - `install` is a deterministic local-environment check, not a free-form analysis field
@@ -136,6 +143,13 @@ Rules:
 - Do not hand-build a standalone HTML report layout outside `templates/report.html`
 - Do not override the template's visual system with custom page-level styles when placeholder filling is sufficient
 - Validate that `report.json` already conforms to schema before writing `report.html`
+
+Forbidden shortcuts:
+
+- Do not hand-write `workflow.mermaid` as the default path when structured graph data is available
+- Do not generate a custom `report.v2.json` or similar conversion artifact as the primary report path
+- Do not use custom translation field shapes such as `heading_zh`, `heading_en`, or `content_zh` in place of standard rows
+- Do not render HTML from any object that has not already passed the canonical `report.json` shape checks
 
 ### Step 4: Write outputs
 
