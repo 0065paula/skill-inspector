@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 
 const root = process.cwd();
 const scriptPath = path.join(root, 'scripts', 'render-report.mjs');
-const reportPath = path.join(root, 'out', 'report.json');
+const reportPath = path.join(root, 'templates', 'report.example.json');
 const outputPath = path.join(root, 'out', 'report.html');
 
 test('rendered report builds mermaid from structured workflow data', () => {
