@@ -261,3 +261,16 @@ test('finalizeReport supports full_human translation overlays that reuse draft e
   assert.equal(result.translation.sections[1].rows[0].en, 'Read source.');
   assert.equal(result.translation.sections[1].rows[0].zh, '读取来源。');
 });
+
+test('finalizeReport rejects translation overlays with unsupported coverage modes', () => {
+  assert.throws(
+    () =>
+      finalizeReport(draft, {
+        translation: {
+          coverage: 'full_auto',
+          sections: []
+        }
+      }),
+    /Unsupported translation\.coverage: full_auto/
+  );
+});

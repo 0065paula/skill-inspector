@@ -82,6 +82,13 @@ The JSON must include, at minimum:
 - `suggestions`
 - `source`
 
+Canonical output rules:
+
+- `report.json` must be the first valid canonical artifact
+- Do not create a custom intermediate report shape and convert it later
+- Do not invent top-level fields or alternate field shapes outside `templates/report.schema.json`
+- Treat `report.json` as the only source of truth before any HTML rendering
+
 Workflow rules:
 
 - Use structured workflow data as the canonical representation
@@ -89,16 +96,17 @@ Workflow rules:
 - Keep `workflow.caption` short and focused on execution logic
 - Let the local renderer derive Mermaid from the workflow structure
 - Load `prompts/workflow-generation.md` when the workflow graph needs language-level interpretation rather than simple heuristic extraction
+- Do not hand-author Mermaid diagrams when structured workflow data can express the same logic
 
 Translation rules for report size:
 
 - Use `translation.mode` to control verbosity
 - Prefer `compact` for routine inspections
 - Use `full` only when side-by-side translation of most sections materially helps the reader
-- When using overlays, prefer layered translation coverage:
-  - `full_auto`: reuse the draft's English section skeleton without adding manual translation rows
-  - `full_human`: keep the draft's English rows and let the overlay provide only Chinese `zh`
-  - `full_override`: let the overlay fully replace both Chinese and English rows when the draft structure is insufficient
+- When using overlays, use `translation.coverage: full_human`
+- Keep the draft's English rows and let the overlay provide only Chinese `zh`
+- Keep `translation.sections[*]` in the standard shape: `title_zh`, `title_en`, `rows[*].zh`, and `rows[*].en`
+- For bilingual output, every translated row must preserve the English counterpart in `rows[*].en`
 
 Do not skip this step.
 
@@ -125,6 +133,9 @@ Rules:
 - Keep meta sections compact
 - Keep the install section visible in the meta area
 - If embedding Mermaid or other JSON payloads inside `<script type="application/json">`, do not use HTML entity escaping for the JSON body; keep it `JSON.parse`-compatible and only escape script-context hazards such as `<`, `>`, `&`, or `</script>`
+- Do not hand-build a standalone HTML report layout outside `templates/report.html`
+- Do not override the template's visual system with custom page-level styles when placeholder filling is sufficient
+- Validate that `report.json` already conforms to schema before writing `report.html`
 
 ### Step 4: Write outputs
 

@@ -96,6 +96,74 @@ test('buildReportDraft generates one-line reference intros from common file patt
   assert.equal(draft.references[4].summary, '运行结果目录，用于保存某类配置下的输出文件。');
 });
 
+test('buildReportDraft uses sharper summaries for common skill reference files', () => {
+  const normalized = {
+    title: 'Design DNA',
+    frontmatter: { name: 'design-dna', description: 'fixture purpose' },
+    source: { original: 'fixture.md', resolved: 'fixture.md' },
+    reportSeeds: {
+      summary: { title: 'Design DNA', purpose: 'fixture purpose' },
+      workflow: { caption: 'fixture', nodes: [], edges: [] },
+      references: [
+        {
+          target: 'references/schema.md',
+          kind: 'file',
+          condition: 'Need authoritative rules',
+          line: 'L31: Read references/schema.md',
+          evidence: 'Read references/schema.md'
+        },
+        {
+          target: 'references/generation-guide.md',
+          kind: 'file',
+          condition: null,
+          line: 'L79: Read references/generation-guide.md',
+          evidence: 'Read references/generation-guide.md'
+        }
+      ],
+      translation: { mode: 'full' },
+      source: { primary_label: '原始路径', primary_value: 'fixture.md' }
+    }
+  };
+
+  const draft = buildReportDraft(normalized);
+
+  assert.equal(
+    draft.references[0].summary,
+    '定义完整字段 schema，是输出结构说明和逐字段提取的核心依据。'
+  );
+  assert.equal(
+    draft.references[1].summary,
+    '给出从结构化设计描述到实现与质量检查的落地规则，服务生成阶段。'
+  );
+});
+
+test('buildReportDraft seeds score and safety templates from source signals', () => {
+  const normalized = normalizeSkillMarkdown(sampleSource, {
+    originalSource: samplePath,
+    resolvedSource: samplePath
+  });
+
+  const draft = buildReportDraft(normalized);
+
+  assert.deepEqual(
+    draft.score.dimensions.map((item) => item.name),
+    [
+      'Trigger clarity',
+      'Workflow structure',
+      'Reference quality',
+      'Safety boundaries',
+      'Execution readiness'
+    ]
+  );
+  assert.ok(draft.score.dimensions.every((item) => typeof item.value === 'number'));
+  assert.match(draft.score.dimensions[0].rationale, /待结合/);
+  assert.equal(draft.safety.level_code, 'medium');
+  assert.equal(draft.safety.level_label, '待评估');
+  assert.match(draft.safety.level_summary, /待结合来源信号/);
+  assert.ok(Array.isArray(draft.safety.findings));
+  assert.ok(draft.safety.findings.length >= 1);
+});
+
 test('build-report-draft CLI writes a schema-shaped draft report', () => {
   const fixtureDir = path.join(root, 'out', 'draft-fixture');
   const normalizedPath = path.join(fixtureDir, 'normalized-source.json');

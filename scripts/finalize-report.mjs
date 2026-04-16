@@ -86,14 +86,7 @@ const mergeFullHumanSections = (draftSections, overlaySections) => {
 };
 
 const mergeTranslation = (draftTranslation = {}, overlayTranslation = {}) => {
-  const coverage = overlayTranslation.coverage || 'full';
-
-  if (coverage === 'full_auto') {
-    return {
-      ...draftTranslation,
-      sections: Array.isArray(draftTranslation.sections) ? draftTranslation.sections : []
-    };
-  }
+  const coverage = overlayTranslation.coverage || 'full_human';
 
   if (coverage === 'full_human') {
     return {
@@ -105,7 +98,7 @@ const mergeTranslation = (draftTranslation = {}, overlayTranslation = {}) => {
     };
   }
 
-  return deepMerge(draftTranslation, overlayTranslation);
+  throw new Error(`Unsupported translation.coverage: ${coverage}`);
 };
 
 export const validateReportShape = (report) => {

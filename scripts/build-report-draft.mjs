@@ -4,8 +4,103 @@ import path from 'node:path';
 
 import { siblingOutputPath } from './output-paths.mjs';
 
+const scoreDimensionNames = [
+  'Trigger clarity',
+  'Workflow structure',
+  'Reference quality',
+  'Safety boundaries',
+  'Execution readiness'
+];
+
+const buildScoreDimensions = (normalized) => {
+  const hasDescription = Boolean(normalized.frontmatter?.description);
+  const hasWorkflow =
+    Array.isArray(normalized.reportSeeds?.workflow?.nodes) &&
+    normalized.reportSeeds.workflow.nodes.length > 0;
+  const referenceCount =
+    (Array.isArray(normalized.fileReferences) ? normalized.fileReferences.length : 0) +
+    (Array.isArray(normalized.urlReferences) ? normalized.urlReferences.length : 0);
+
+  return scoreDimensionNames.map((name) => ({
+    name,
+    value: 0,
+    rationale:
+      name === 'Trigger clarity' && hasDescription
+        ? '待结合 frontmatter.description、触发词和输入范围补充判断。'
+        : name === 'Workflow structure' && hasWorkflow
+          ? '待结合 workflow 草图、阶段顺序和分支条件补充判断。'
+          : name === 'Reference quality' && referenceCount > 0
+            ? '待结合引用文件、URL 和证据行质量补充判断。'
+            : name === 'Safety boundaries'
+              ? '待结合外部访问、命令执行和写入边界补充判断。'
+              : '待结合来源信号和执行落地程度补充判断。'
+  }));
+};
+
+const buildSafetyFindings = (normalized) => {
+  const findings = [];
+  const commands = Array.isArray(normalized.commands) ? normalized.commands : [];
+  const urlReferences = Array.isArray(normalized.urlReferences) ? normalized.urlReferences : [];
+  const fileReferences = Array.isArray(normalized.fileReferences) ? normalized.fileReferences : [];
+
+  if (commands.length > 0) {
+    findings.push({
+      signal: 'Command execution signals',
+      severity: 'medium',
+      meaning: '待结合命令用途、执行环境和副作用确认风险等级。',
+      evidence: commands[0].code.split('\n')[0].trim()
+    });
+  }
+
+  if (urlReferences.length > 0) {
+    findings.push({
+      signal: 'External link dependency',
+      severity: 'medium',
+      meaning: '待结合在线来源的权威性、可达性和使用条件确认边界。',
+      evidence: urlReferences[0].evidence || urlReferences[0].target
+    });
+  }
+
+  if (fileReferences.length > 0) {
+    findings.push({
+      signal: 'Local reference dependency',
+      severity: 'low',
+      meaning: '待结合本地依赖文件是否必需、是否存在和是否影响执行路径补充判断。',
+      evidence: fileReferences[0].evidence || fileReferences[0].target
+    });
+  }
+
+  if (findings.length === 0) {
+    findings.push({
+      signal: 'Source review pending',
+      severity: 'medium',
+      meaning: '待结合来源中的外部交互、写入路径和依赖条件补充风险判断。',
+      evidence: normalized.title || normalized.frontmatter?.name || 'skill source'
+    });
+  }
+
+  return findings;
+};
+
 const referenceSummary = (ref) => {
   const target = String(ref.target || '');
+  const condition = String(ref.condition || '');
+
+  if (target === 'references/schema.md') {
+    return '定义完整字段 schema，是输出结构说明和逐字段提取的核心依据。';
+  }
+  if (target === 'references/generation-guide.md') {
+    return '给出从结构化设计描述到实现与质量检查的落地规则，服务生成阶段。';
+  }
+  if (/schema/i.test(target) || condition === 'Need authoritative rules') {
+    return '权威规则文件，用于定义字段结构、约束条件或输出格式。';
+  }
+  if (/generation-guide|implementation-guide|playbook/i.test(target)) {
+    return '执行指南文件，用于说明实现步骤、技术映射或交付检查。';
+  }
+  if (/examples/i.test(target) || condition === 'Need examples') {
+    return '示例集合文件，用于展示输入输出形状或典型执行路径。';
+  }
 
   if (target.startsWith('agents/')) {
     return 'Agent 说明文件，定义特定子任务的执行方式。';
@@ -119,14 +214,14 @@ export const buildReportDraft = (normalized) => {
     safety: {
       level_code: 'medium',
       level_label: '待评估',
-      level_summary: '待补充安全边界和风险判断。',
-      findings: []
+      level_summary: '待结合来源信号中的外部访问、命令执行和依赖边界补充风险判断。',
+      findings: buildSafetyFindings(normalized)
     },
     install: {
       items: buildInstallItems(skillName)
     },
     score: {
-      dimensions: []
+      dimensions: buildScoreDimensions(normalized)
     },
     suggestions: [],
     source: {
