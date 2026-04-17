@@ -108,7 +108,7 @@ export const validateReportShape = (report) => {
     }
   }
 
-  if (!['compact', 'full'].includes(report.translation.mode)) {
+  if (!['compact', 'full', 'summary'].includes(report.translation.mode)) {
     throw new Error('Invalid translation.mode');
   }
 

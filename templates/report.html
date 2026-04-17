@@ -634,7 +634,7 @@
       <div class="nav-shell">
         <nav class="nav" aria-label="Report sections">
           <a class="nav-link" href="#workflow">流程图</a>
-          <a class="nav-link" href="#translation">中文翻译</a>
+          <a class="nav-link" href="#translation">{{translation_nav_label}}</a>
           <a class="nav-link" href="#references">引用</a>
           <a class="nav-link" href="#safety">安全</a>
           <a class="nav-link" href="#suggestions">建议</a>
@@ -660,8 +660,8 @@
           <section class="panel translation-panel" id="translation">
             <div class="panel-head">
               <div>
-                <h2>中文翻译</h2>
-                <p class="muted">按内容段落展开，保持中文与原文左右对照。</p>
+                <h2>{{translation_panel_title}}</h2>
+                <p class="muted">{{translation_panel_subtitle}}</p>
               </div>
             </div>
             {{translation_sections_html}}

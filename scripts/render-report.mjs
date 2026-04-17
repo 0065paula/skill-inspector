@@ -44,18 +44,22 @@ const toMermaidSafeLabel = (value) =>
     .trim();
 
 const quoteMermaidLabel = (value) => JSON.stringify(toMermaidSafeLabel(value));
+const toMermaidSafeId = (value) =>
+  `n_${String(value)
+    .replace(/[^A-Za-z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'node'}`;
 
-const workflowNodeSyntax = (node) => {
+const workflowNodeSyntax = (node, nodeId) => {
   const label = quoteMermaidLabel(node.label);
   switch (node.kind) {
     case 'decision':
-      return `${node.id}{${label}}`;
+      return `${nodeId}{${label}}`;
     case 'terminal':
-      return `${node.id}([${label}])`;
+      return `${nodeId}([${label}])`;
     case 'reference':
-      return `${node.id}[[${label}]]`;
+      return `${nodeId}[[${label}]]`;
     default:
-      return `${node.id}[${label}]`;
+      return `${nodeId}[${label}]`;
   }
 };
 
@@ -65,14 +69,15 @@ const buildMermaidFromWorkflow = (workflow) => {
   const nodes = Array.isArray(workflow.nodes) ? workflow.nodes : [];
   const edges = Array.isArray(workflow.edges) ? workflow.edges : [];
   const lines = ['flowchart TD'];
+  const idMap = new Map(nodes.map((node) => [node.id, toMermaidSafeId(node.id)]));
 
   for (const node of nodes) {
-    lines.push(workflowNodeSyntax(node));
+    lines.push(workflowNodeSyntax(node, idMap.get(node.id)));
   }
 
   for (const edge of edges) {
     const label = edge.label ? ` -->|${edge.label}| ` : ' --> ';
-    lines.push(`${edge.from}${label}${edge.to}`);
+    lines.push(`${idMap.get(edge.from) || toMermaidSafeId(edge.from)}${label}${idMap.get(edge.to) || toMermaidSafeId(edge.to)}`);
   }
 
   return lines.join('\n');
@@ -86,6 +91,18 @@ const scoreLevelClass = (score) => {
 
 const translationMode = report.translation.mode || 'full';
 const workflowMermaid = buildMermaidFromWorkflow(report.workflow);
+const translationPanelCopy =
+  translationMode === 'summary'
+    ? {
+        navLabel: '中文总结',
+        title: '中文总结',
+        subtitle: '按章节提炼中文总结，不显示原文对照。'
+      }
+    : {
+        navLabel: '中文翻译',
+        title: '中文翻译',
+        subtitle: '按内容段落展开，保持中文与原文左右对照。'
+      };
 
 const translationSectionsHtml = report.translation.sections
   .map((section) => {
@@ -95,6 +112,21 @@ const translationSectionsHtml = report.translation.sections
           `\n              <div class="translation-block-row"><div class="translation-text">${escapeHtml(row.zh)}</div></div>`
       )
       .join('');
+
+    if (translationMode === 'summary') {
+      return `
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>${escapeHtml(section.title_zh || section.title_en)}</h3>
+                  <p class="muted">${escapeHtml(section.title_en)}</p>
+                </div>
+              </div>
+              <div class="translation-col">${zhRows}
+              </div>
+            </article>`;
+    }
+
     const enRows = section.rows
       .map(
         (row) =>
@@ -222,6 +254,9 @@ template = template
   .replace('{{summary.risk_level}}', escapeHtml(report.summary.risk_level))
   .replace('{{references_count}}', escapeHtml(String(report.references.length)))
   .replace('{{translation_mode}}', escapeHtml(translationMode))
+  .replace('{{translation_nav_label}}', escapeHtml(translationPanelCopy.navLabel))
+  .replace('{{translation_panel_title}}', escapeHtml(translationPanelCopy.title))
+  .replace('{{translation_panel_subtitle}}', escapeHtml(translationPanelCopy.subtitle))
   .replace('{{workflow.caption}}', escapeHtml(report.workflow.caption))
   .replace('{{source_inline}}', sourceInline)
   .replace('{{translation_sections_html}}', translationSectionsHtml)

@@ -274,3 +274,21 @@ test('finalizeReport rejects translation overlays with unsupported coverage mode
     /Unsupported translation\.coverage: full_auto/
   );
 });
+
+test('validateReportShape accepts summary translation mode', () => {
+  const report = {
+    ...draft,
+    translation: {
+      mode: 'summary',
+      sections: [
+        {
+          title_zh: '概述',
+          title_en: 'Overview',
+          rows: [{ zh: '这是总结。', en: '' }]
+        }
+      ]
+    }
+  };
+
+  assert.doesNotThrow(() => validateReportShape(report));
+});

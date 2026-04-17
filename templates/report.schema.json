@@ -63,7 +63,7 @@
       "properties": {
         "mode": {
           "type": "string",
-          "enum": ["compact", "full"]
+          "enum": ["compact", "full", "summary"]
         },
         "sections": {
           "type": "array",

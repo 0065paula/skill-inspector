@@ -100,6 +100,26 @@ description: Use when bare file names should still count as references
 Use the reviewer prompt in \`design-reviewer.md\`.
 `;
 
+const chineseSummarySource = `---
+name: chinese-summary-skill
+description: 用于评估中文 skill 的结构质量
+---
+
+# Chinese Summary Skill
+
+## Required Workflow
+
+### Baseline 对比
+
+1. 设计测试 prompt
+2. 运行 baseline
+
+### Result Card 输出
+
+1. 生成 Result Card
+2. 标注 dry_run
+`;
+
 test('rewriteGitHubBlobToRaw converts github blob URLs to raw URLs', () => {
   const input = 'https://github.com/kepano/obsidian-skills/blob/main/skills/json-canvas/SKILL.md';
   const output = rewriteGitHubBlobToRaw(input);
@@ -208,11 +228,11 @@ test('normalizeSkillMarkdown builds grouped workflow graphs for multi-section wo
   );
   assert.equal(
     normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'create_canvas')?.label,
-    'Create canvas'
+    'Create Canvas'
   );
   assert.equal(
     normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'edit_canvas')?.label,
-    'Edit canvas'
+    'Edit Canvas'
   );
   assert.equal(
     normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'examples')?.kind,
@@ -239,8 +259,8 @@ test('normalizeSkillMarkdown builds grouped workflow graphs for multi-section wo
     [
       ['input', 'parse', null],
       ['parse', 'branch', null],
-      ['branch', 'create_canvas', 'Create canvas'],
-      ['branch', 'edit_canvas', 'Edit canvas'],
+      ['branch', 'create_canvas', 'Create Canvas'],
+      ['branch', 'edit_canvas', 'Edit Canvas'],
       ['parse', 'examples', 'Need examples'],
       ['parse', 'spec', 'Need authoritative rules'],
       ['create_canvas', 'validate', null],
@@ -284,7 +304,7 @@ test('normalizeSkillMarkdown builds serial workflow graphs for step-based sectio
   );
   assert.equal(
     normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'step_1')?.label,
-    'Read and normalize source'
+    'Read and normalize the source'
   );
   assert.equal(
     normalized.reportSeeds.workflow.nodes.find((item) => item.id === 'step_4')?.label,
@@ -340,6 +360,27 @@ test('normalizeSkillMarkdown extracts bare markdown file names used as reference
   assert.deepEqual(
     normalized.fileReferences.map((item) => item.target),
     ['design-reviewer.md']
+  );
+});
+
+test('normalizeSkillMarkdown uses summary mode for primarily Chinese source text', () => {
+  const normalized = normalizeSkillMarkdown(chineseSummarySource, {
+    originalSource: 'chinese-summary-source.md',
+    resolvedSource: 'chinese-summary-source.md'
+  });
+
+  assert.equal(normalized.reportSeeds.translation.mode, 'summary');
+  assert.deepEqual(
+    normalized.reportSeeds.workflow.nodes.map((item) => item.label),
+    [
+      'Receive task',
+      'Read and normalize source',
+      'Select workflow',
+      'Baseline 对比',
+      'Result Card 输出',
+      'Validate output',
+      'Write updated output'
+    ]
   );
 });
 

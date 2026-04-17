@@ -82,7 +82,7 @@ test('rendered report builds mermaid from structured workflow data', () => {
   assert.equal(typeof parsed, 'string');
   assert.match(parsed, /^flowchart TD/);
   assert.match(parsed, /input\["Read Source"\]/);
-  assert.match(parsed, /normalize -->\|json first\| report/);
+  assert.match(parsed, /n_normalize -->\|json first\| n_report/);
   assert.match(html, /翻译模式<\/dt>\s*<dd>compact<\/dd>/);
 });
 
@@ -153,6 +153,68 @@ test('rendered report escapes mermaid-unsafe workflow labels', () => {
   assert.doesNotMatch(mermaidSource, /\{\"nodes\": \[\], \"edges\": \[\]\}/);
   assert.match(mermaidSource, /Create a \.canvas file with the base structure nodes: \[\], edges: \[\]/);
   assert.match(mermaidSource, /Set fromNode and toNode to the source and target IDs/);
+});
+
+test('rendered report rewrites mermaid-reserved workflow ids to safe ids', () => {
+  const fixtureDir = path.join(root, 'out', 'mermaid-reserved-id-fixture');
+  const fixtureReportPath = path.join(fixtureDir, 'report.json');
+  const fixtureOutputPath = path.join(fixtureDir, 'report.html');
+
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.writeFileSync(
+    fixtureReportPath,
+    JSON.stringify(
+      {
+        summary: {
+          title: 'Reserved Id Skill',
+          purpose: 'fixture purpose',
+          score_total: 80,
+          risk_level: '低风险'
+        },
+        workflow: {
+          caption: 'fixture caption',
+          nodes: [
+            { id: 'style', label: 'Load style references' },
+            { id: 'class', label: 'Map nodes to shapes' }
+          ],
+          edges: [{ from: 'style', to: 'class', label: 'next' }]
+        },
+        translation: {
+          mode: 'compact',
+          sections: []
+        },
+        references: [],
+        safety: {
+          level_code: 'low',
+          level_label: '低风险',
+          level_summary: 'fixture safety',
+          findings: []
+        },
+        install: { items: [] },
+        score: { dimensions: [] },
+        suggestions: [],
+        source: {
+          primary_label: '原始链接',
+          primary_value: 'https://example.com'
+        }
+      },
+      null,
+      2
+    )
+  );
+
+  execFileSync('node', [scriptPath, fixtureReportPath, fixtureOutputPath], { cwd: root });
+
+  const html = fs.readFileSync(fixtureOutputPath, 'utf8');
+  const match = html.match(/<script id="mermaid-source" type="application\/json">([\s\S]*?)<\/script>/);
+  assert.ok(match, 'expected mermaid source script block');
+
+  const mermaidSource = JSON.parse(match[1]);
+  assert.doesNotMatch(mermaidSource, /^flowchart TD\nstyle\[/m);
+  assert.doesNotMatch(mermaidSource, /\nstyle -->\|next\| class/m);
+  assert.match(mermaidSource, /\nn_style\["Load style references"\]/);
+  assert.match(mermaidSource, /\nn_class\["Map nodes to shapes"\]/);
+  assert.match(mermaidSource, /\nn_style -->\|next\| n_class/);
 });
 
 test('rendered report embeds mermaid JSON that parses successfully', () => {
@@ -340,6 +402,67 @@ test('rendered report configures mermaid with the paper-column palette', () => {
   assert.match(html, /theme:\s*"base"/);
   assert.match(html, /primaryColor:\s*"#edf4fa"/);
   assert.match(html, /primaryTextColor:\s*"#223446"/);
+});
+
+test('rendered report switches translation panel to Chinese summary for summary mode', () => {
+  const fixtureDir = path.join(root, 'out', 'summary-mode-fixture');
+  const fixtureReportPath = path.join(fixtureDir, 'report.json');
+  const fixtureOutputPath = path.join(fixtureDir, 'report.html');
+
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.writeFileSync(
+    fixtureReportPath,
+    JSON.stringify(
+      {
+        summary: {
+          title: 'Summary Mode Skill',
+          purpose: 'fixture purpose',
+          score_total: 82,
+          risk_level: '低风险'
+        },
+        workflow: {
+          caption: 'fixture caption',
+          nodes: [{ id: 'input', label: 'Baseline 对比' }],
+          edges: []
+        },
+        translation: {
+          mode: 'summary',
+          sections: [
+            {
+              title_zh: '概述',
+              title_en: 'Overview',
+              rows: [{ zh: '这是中文总结。', en: '' }]
+            }
+          ]
+        },
+        references: [],
+        safety: {
+          level_code: 'low',
+          level_label: '低风险',
+          level_summary: 'fixture safety',
+          findings: []
+        },
+        install: { items: [] },
+        score: { dimensions: [] },
+        suggestions: [],
+        source: {
+          primary_label: '原始链接',
+          primary_value: 'https://example.com/source'
+        }
+      },
+      null,
+      2
+    )
+  );
+
+  execFileSync('node', [scriptPath, fixtureReportPath, fixtureOutputPath], { cwd: root });
+
+  const html = fs.readFileSync(fixtureOutputPath, 'utf8');
+
+  assert.match(html, />中文总结</);
+  assert.match(html, />按章节提炼中文总结，不显示原文对照。</);
+  assert.doesNotMatch(html, />中文翻译</);
+  assert.doesNotMatch(html, /class="translation-original"/);
 });
 
 test('rendered report reduces decorative accents and keeps the graph surface white', () => {

@@ -54,6 +54,8 @@ const slugify = (value) =>
 
 const cleanSectionLabel = (value) => String(value).replace(/^\d+\.\s*/, '').trim();
 const isStepSection = (value) => /^step\s+\d+:/i.test(cleanSectionLabel(value));
+const isAsciiLetter = (char) => /[A-Za-z]/.test(char);
+const isCjkChar = (char) => /[\u3400-\u9fff]/.test(char);
 
 const toTitleLabel = (value) =>
   cleanSectionLabel(value)
@@ -65,13 +67,12 @@ const compactWorkflowLabel = (value) => {
   const clean = String(value)
     .replace(/^\d+\.\s*/, '')
     .replace(/^step\s+\d+:\s*/i, '')
-    .replace(/\b(a|an|the)\b/gi, ' ')
-    .replace(/\b(new|existing)\b/gi, ' ')
-    .replace(/\btwo\b/gi, '')
     .replace(/\s+/g, ' ')
     .trim();
 
-  return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+  if (!clean) return 'Untitled step';
+  if (!/[A-Za-z]/.test(clean)) return clean;
+  return clean;
 };
 
 const inferReferenceCondition = (target) => {
@@ -391,6 +392,32 @@ const extractTranslationSections = (lines, headings) => {
   return sections;
 };
 
+const detectPrimaryLanguage = (markdown) => {
+  let cjkTouchedLines = 0;
+  let latinOnlyLines = 0;
+
+  for (const rawLine of String(markdown).split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (/^(---|#|```)/.test(line)) continue;
+    if (/^[A-Za-z0-9_-]+:\s*/.test(line)) continue;
+
+    let cjkCount = 0;
+    let latinCount = 0;
+    for (const char of line) {
+      if (isCjkChar(char)) cjkCount += 1;
+      else if (isAsciiLetter(char)) latinCount += 1;
+    }
+
+    if (cjkCount >= 2) cjkTouchedLines += 1;
+    else if (latinCount >= 4) latinOnlyLines += 1;
+  }
+
+  if (cjkTouchedLines === 0) return 'non_zh';
+  if (cjkTouchedLines >= 2 && cjkTouchedLines >= latinOnlyLines) return 'zh';
+  return 'non_zh';
+};
+
 const extractWorkflowSections = (lines, headings) => {
   const workflowParents = headings.filter((item) => item.level > 1 && /workflow/i.test(item.text));
   const sections = [];
@@ -486,6 +513,7 @@ export const normalizeSkillMarkdown = (markdown, source = {}) => {
   const workflowSteps = extractWorkflowSteps(lines, headings);
   const workflowSections = extractWorkflowSections(lines, headings);
   const translationSections = extractTranslationSections(lines, headings);
+  const primaryLanguage = detectPrimaryLanguage(body);
   const fileReferences = extractFileReferences(lines);
   const urlReferences = extractUrlReferences(lines);
   const referenceSeeds = buildReferenceSeeds(fileReferences, urlReferences);
@@ -531,7 +559,7 @@ export const normalizeSkillMarkdown = (markdown, source = {}) => {
       },
       references: referenceSeeds,
       translation: {
-        mode: 'full',
+        mode: primaryLanguage === 'zh' ? 'summary' : 'full',
         sections: translationSections
       },
       source: reportSource

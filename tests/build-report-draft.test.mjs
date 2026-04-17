@@ -37,6 +37,35 @@ test('buildReportDraft seeds deterministic report fields from normalized skill d
   assert.equal(draft.source.primary_value, samplePath);
 });
 
+test('buildReportDraft preserves summary translation mode from normalized seeds', () => {
+  const normalized = {
+    title: 'Chinese Summary Skill',
+    frontmatter: { description: '用于中文源 skill 的总结模式' },
+    source: { original: 'fixture.md', resolved: 'fixture.md' },
+    reportSeeds: {
+      summary: { title: 'Chinese Summary Skill', purpose: '用于中文源 skill 的总结模式' },
+      workflow: { caption: 'fixture', nodes: [], edges: [] },
+      references: [],
+      translation: {
+        mode: 'summary',
+        sections: [
+          {
+            title_zh: '',
+            title_en: '概述',
+            rows: [{ zh: '', en: '原文段落' }]
+          }
+        ]
+      },
+      source: { primary_label: '原始路径', primary_value: 'fixture.md' }
+    }
+  };
+
+  const draft = buildReportDraft(normalized);
+
+  assert.equal(draft.translation.mode, 'summary');
+  assert.equal(draft.translation.sections.length, 1);
+});
+
 test('buildReportDraft generates one-line reference intros from common file patterns', () => {
   const normalized = {
     title: 'Fixture Skill',

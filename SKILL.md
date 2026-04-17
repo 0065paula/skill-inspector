@@ -97,16 +97,22 @@ Workflow rules:
 - Let the local renderer derive Mermaid from the workflow structure
 - Load `prompts/workflow-generation.md` when the workflow graph needs language-level interpretation rather than simple heuristic extraction
 - Do not hand-author Mermaid diagrams when structured workflow data can express the same logic
+- Treat `workflow.nodes[*].id` as an internal reference key, not as a Mermaid-safe node identifier
+- When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first so reserved words such as `style`, `class`, or other syntax-sensitive tokens cannot break the graph
+- Keep human-readable and source-language terminology in `workflow.nodes[*].label`, not in the rendered Mermaid node id
 
 Translation rules for report size:
 
 - Use `translation.mode` to control verbosity
 - Prefer `compact` for routine inspections
 - Use `full` only when side-by-side translation of most sections materially helps the reader
+- Use `summary` when the source skill is already primarily Chinese and the report should present a Chinese summary instead of bilingual source/translation rows
 - When using overlays, use `translation.coverage: full_human`
 - Keep the draft's English rows and let the overlay provide only Chinese `zh`
 - Keep `translation.sections[*]` in the standard shape: `title_zh`, `title_en`, `rows[*].zh`, and `rows[*].en`
 - For bilingual output, every translated row must preserve the English counterpart in `rows[*].en`
+- For `summary` output, fill `rows[*].zh` with Chinese summary text and leave `rows[*].en` empty when no source-language counterpart should be shown
+- When workflow node labels include domain terms such as `baseline`, `dry_run`, `git revert`, or product names, prefer preserving the original-language term instead of translating it mechanically
 
 Do not skip this step.
 
@@ -115,6 +121,7 @@ Validation rules before rendering:
 - Verify that `report.json` already conforms to `templates/report.schema.json`
 - Verify that `translation.sections[*].rows[*]` contains both `zh` and `en` when bilingual output is expected
 - Verify that `workflow.nodes` and `workflow.edges` exist before Mermaid rendering
+- Verify that Mermaid generation uses safe mapped node ids rather than raw workflow ids whenever structured workflow data is converted into Mermaid text
 - If any of these checks fail, return to JSON correction before attempting HTML rendering
 
 Install rules:
