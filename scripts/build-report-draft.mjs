@@ -12,6 +12,12 @@ const scoreDimensionNames = [
   'Execution readiness'
 ];
 
+const sanitizePurpose = (value, fallback) => {
+  const cleaned = String(value || '').trim();
+  if (!cleaned || cleaned === '>' || cleaned === '|') return fallback;
+  return cleaned;
+};
+
 const buildScoreDimensions = (normalized) => {
   const hasDescription = Boolean(normalized.frontmatter?.description);
   const hasWorkflow =
@@ -190,7 +196,10 @@ export const buildReportDraft = (normalized) => {
   return {
     summary: {
       title: summarySeed.title || normalized.title || 'Untitled Skill',
-      purpose: summarySeed.purpose || normalized.frontmatter?.description || '待补充用途说明。',
+      purpose: sanitizePurpose(
+        summarySeed.purpose || normalized.frontmatter?.description,
+        '待补充用途说明。'
+      ),
       score_total: 0,
       risk_level: '待评估'
     },

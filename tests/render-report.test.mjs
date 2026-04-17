@@ -217,6 +217,70 @@ test('rendered report rewrites mermaid-reserved workflow ids to safe ids', () =>
   assert.match(mermaidSource, /\nn_style -->\|next\| n_class/);
 });
 
+test('rendered report groups translation prose rows into paragraph blocks', () => {
+  const fixtureDir = path.join(root, 'out', 'translation-blocks-fixture');
+  const fixtureReportPath = path.join(fixtureDir, 'report.json');
+  const fixtureOutputPath = path.join(fixtureDir, 'report.html');
+
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.writeFileSync(
+    fixtureReportPath,
+    JSON.stringify(
+      {
+        summary: {
+          title: 'Translation Blocks Skill',
+          purpose: 'fixture purpose',
+          score_total: 84,
+          risk_level: '低风险'
+        },
+        workflow: {
+          caption: 'fixture caption',
+          nodes: [{ id: 'input', label: 'Read source' }],
+          edges: []
+        },
+        translation: {
+          mode: 'full',
+          sections: [
+            {
+              title_zh: '概述',
+              title_en: 'Overview',
+              rows: [
+                { zh: '这是第一句。', en: 'This is sentence one.' },
+                { zh: '这是第二句。', en: 'This is sentence two.' },
+                { zh: '- 第一项', en: '- First item' },
+                { zh: '- 第二项', en: '- Second item' }
+              ]
+            }
+          ]
+        },
+        references: [],
+        safety: {
+          level_code: 'low',
+          level_label: '低风险',
+          level_summary: 'fixture safety',
+          findings: []
+        },
+        install: { items: [] },
+        score: { dimensions: [] },
+        suggestions: [],
+        source: {
+          primary_label: '原始链接',
+          primary_value: 'https://example.com'
+        }
+      },
+      null,
+      2
+    )
+  );
+
+  execFileSync('node', [scriptPath, fixtureReportPath, fixtureOutputPath], { cwd: root });
+
+  const html = fs.readFileSync(fixtureOutputPath, 'utf8');
+  assert.match(html, /<p class="translation-paragraph">这是第一句。 这是第二句。<\/p>/);
+  assert.match(html, /<li class="translation-list-item">第一项<\/li>/);
+  assert.match(html, /<li class="translation-list-item">第二项<\/li>/);
+});
+
 test('rendered report embeds mermaid JSON that parses successfully', () => {
   execFileSync('node', [scriptPath, reportPath, outputPath], { cwd: root });
 

@@ -257,18 +257,50 @@ const buildReferenceSeeds = (fileReferences, urlReferences) => [
   }))
 ];
 
+const cleanFrontmatterScalar = (value) => String(value).trim().replace(/^['"]|['"]$/g, '');
+
+const normalizeFrontmatterDescription = (value) => {
+  const cleaned = cleanFrontmatterScalar(value).replace(/\s+/g, ' ').trim();
+  if (!cleaned || cleaned === '>' || cleaned === '|') return '';
+  return cleaned;
+};
+
 const extractFrontmatter = (markdown) => {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n?/);
   if (!match) return { frontmatter: {}, body: markdown };
 
   const frontmatter = {};
-  for (const rawLine of match[1].split('\n')) {
+  const lines = match[1].split('\n');
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index];
     const line = rawLine.trim();
     if (!line || line.startsWith('#')) continue;
-    const pair = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+
+    const pair = rawLine.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
     if (!pair) continue;
-    const [, key, value] = pair;
-    frontmatter[key] = value.replace(/^['"]|['"]$/g, '');
+
+    const [, key, rawValue] = pair;
+    const value = rawValue.trim();
+
+    if (value === '>' || value === '|') {
+      const blockLines = [];
+      for (let blockIndex = index + 1; blockIndex < lines.length; blockIndex += 1) {
+        const candidate = lines[blockIndex];
+        if (!candidate.trim()) {
+          blockLines.push('');
+          continue;
+        }
+        if (!/^\s+/.test(candidate)) break;
+        blockLines.push(candidate.trim());
+        index = blockIndex;
+      }
+
+      frontmatter[key] = normalizeFrontmatterDescription(blockLines.join(value === '>' ? ' ' : '\n'));
+      continue;
+    }
+
+    frontmatter[key] = cleanFrontmatterScalar(value);
   }
 
   return {
@@ -524,7 +556,7 @@ export const normalizeSkillMarkdown = (markdown, source = {}) => {
         : buildGroupedWorkflowGraph(workflowSections, referenceSeeds)
       : buildLinearWorkflowGraph(workflowSteps);
   const title = headings[0]?.text || frontmatter.name || 'Untitled Skill';
-  const purpose = frontmatter.description || title;
+  const purpose = normalizeFrontmatterDescription(frontmatter.description || '') || title;
   const reportSource =
     source.originalSource && looksLikeUrl(source.originalSource)
       ? {

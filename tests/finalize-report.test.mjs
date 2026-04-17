@@ -262,6 +262,225 @@ test('finalizeReport supports full_human translation overlays that reuse draft e
   assert.equal(result.translation.sections[1].rows[0].zh, '读取来源。');
 });
 
+test('finalizeReport rejects full translation overlays with missing section coverage', () => {
+  const humanDraft = {
+    ...draft,
+    translation: {
+      mode: 'full',
+      sections: [
+        {
+          title_zh: '',
+          title_en: 'Overview',
+          rows: [{ zh: '', en: 'Analyze one skill source.' }]
+        },
+        {
+          title_zh: '',
+          title_en: 'Workflow',
+          rows: [{ zh: '', en: 'Read source.' }]
+        }
+      ]
+    }
+  };
+
+  assert.throws(
+    () =>
+      finalizeReport(humanDraft, {
+        translation: {
+          coverage: 'full_human',
+          sections: [
+            {
+              title_zh: '概述',
+              title_en: 'Overview',
+              rows: [{ zh: '分析一个 skill 来源。' }]
+            }
+          ]
+        }
+      }),
+    /Missing translated section: Workflow/
+  );
+});
+
+test('finalizeReport rejects full translation overlays with missing row translations', () => {
+  const humanDraft = {
+    ...draft,
+    translation: {
+      mode: 'full',
+      sections: [
+        {
+          title_zh: '',
+          title_en: 'Overview',
+          rows: [
+            { zh: '', en: 'Analyze one skill source.' },
+            { zh: '', en: 'Generate a report.' }
+          ]
+        }
+      ]
+    }
+  };
+
+  assert.throws(
+    () =>
+      finalizeReport(humanDraft, {
+        translation: {
+          coverage: 'full_human',
+          sections: [
+            {
+              title_zh: '概述',
+              title_en: 'Overview',
+              rows: [{ zh: '分析一个 skill 来源。' }]
+            }
+          ]
+        }
+      }),
+    /Missing translated row 2 in section: Overview/
+  );
+});
+
+test('finalizeReport rejects placeholder zh rows in full translation mode', () => {
+  const humanDraft = {
+    ...draft,
+    translation: {
+      mode: 'full',
+      sections: [
+        {
+          title_zh: '',
+          title_en: 'Overview',
+          rows: [{ zh: '', en: 'Generate a report.' }]
+        }
+      ]
+    }
+  };
+
+  assert.throws(
+    () =>
+      finalizeReport(humanDraft, {
+        translation: {
+          coverage: 'full_human',
+          sections: [
+            {
+              title_zh: '概述',
+              title_en: 'Overview',
+              rows: [{ zh: '（待补充中文翻译）' }]
+            }
+          ]
+        }
+      }),
+    /Placeholder translation in section: Overview/
+  );
+});
+
+test('finalizeReport rejects copied english prose in zh rows for full translation mode', () => {
+  const humanDraft = {
+    ...draft,
+    translation: {
+      mode: 'full',
+      sections: [
+        {
+          title_zh: '',
+          title_en: 'Overview',
+          rows: [{ zh: '', en: 'Generate a report for the user.' }]
+        }
+      ]
+    }
+  };
+
+  assert.throws(
+    () =>
+      finalizeReport(humanDraft, {
+        translation: {
+          coverage: 'full_human',
+          sections: [
+            {
+              title_zh: '概述',
+              title_en: 'Overview',
+              rows: [{ zh: 'Generate a report for the user.' }]
+            }
+          ]
+        }
+      }),
+    /Untranslated english prose in zh row 1 of section: Overview/
+  );
+});
+
+test('finalizeReport rejects english prose with fake chinese suffix markers', () => {
+  const humanDraft = {
+    ...draft,
+    translation: {
+      mode: 'full',
+      sections: [
+        {
+          title_zh: '',
+          title_en: 'Overview',
+          rows: [{ zh: '', en: 'Based on the gathered information:' }]
+        }
+      ]
+    }
+  };
+
+  assert.throws(
+    () =>
+      finalizeReport(humanDraft, {
+        translation: {
+          coverage: 'full_human',
+          sections: [
+            {
+              title_zh: '概述',
+              title_en: 'Overview',
+              rows: [{ zh: 'Based on the gathered information:（中文）' }]
+            }
+          ]
+        }
+      }),
+    /Untranslated english prose in zh row 1 of section: Overview/
+  );
+});
+
+test('validateReportShape rejects fallback summary purpose in final report', () => {
+  const report = {
+    ...draft,
+    summary: {
+      ...draft.summary,
+      purpose: '待补充用途说明。'
+    }
+  };
+
+  assert.throws(
+    () => validateReportShape(report),
+    /Fallback summary purpose is not allowed/
+  );
+});
+
+test('finalizeReport allows technical rows that intentionally preserve commands and paths', () => {
+  const humanDraft = {
+    ...draft,
+    translation: {
+      mode: 'full',
+      sections: [
+        {
+          title_zh: '',
+          title_en: 'Workflow',
+          rows: [{ zh: '', en: 'Use `scripts/build-report-draft.mjs` with `.env` configured.' }]
+        }
+      ]
+    }
+  };
+
+  const result = finalizeReport(humanDraft, {
+    translation: {
+      coverage: 'full_human',
+      sections: [
+        {
+          title_zh: '流程',
+          title_en: 'Workflow',
+          rows: [{ zh: '使用 `scripts/build-report-draft.mjs`，并确保 `.env` 已配置。' }]
+        }
+      ]
+    }
+  });
+
+  assert.equal(result.translation.sections[0].rows[0].zh, '使用 `scripts/build-report-draft.mjs`，并确保 `.env` 已配置。');
+});
+
 test('finalizeReport rejects translation overlays with unsupported coverage modes', () => {
   assert.throws(
     () =>

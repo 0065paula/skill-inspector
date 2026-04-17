@@ -83,6 +83,95 @@ const buildMermaidFromWorkflow = (workflow) => {
   return lines.join('\n');
 };
 
+const rowKind = (text) => {
+  const value = String(text || '').trim();
+  if (!value) return 'empty';
+  if (/^#{1,6}\s+/.test(value)) return 'heading';
+  if (/^\*\*[^*]+\*\*:?$/.test(value)) return 'heading';
+  if (/^\s*(?:[-*]|\d+\.)\s+/.test(value)) return 'list';
+  return 'paragraph';
+};
+
+const stripListMarker = (text) => String(text || '').replace(/^\s*(?:[-*]|\d+\.)\s+/, '').trim();
+
+const buildPresentationBlocks = (rows) => {
+  const blocks = [];
+  let paragraphBuffer = [];
+
+  const flushParagraph = () => {
+    if (paragraphBuffer.length === 0) return;
+    blocks.push({
+      kind: 'paragraph',
+      rows: paragraphBuffer
+    });
+    paragraphBuffer = [];
+  };
+
+  let listBuffer = [];
+  const flushList = () => {
+    if (listBuffer.length === 0) return;
+    blocks.push({
+      kind: 'list',
+      rows: listBuffer
+    });
+    listBuffer = [];
+  };
+
+  for (const row of rows) {
+    const kind = rowKind(row.zh || row.en || '');
+    if (kind === 'heading') {
+      flushParagraph();
+      flushList();
+      blocks.push({ kind: 'heading', rows: [row] });
+      continue;
+    }
+    if (kind === 'list') {
+      flushParagraph();
+      listBuffer.push(row);
+      continue;
+    }
+
+    flushList();
+    paragraphBuffer.push(row);
+  }
+
+  flushParagraph();
+  flushList();
+
+  return blocks;
+};
+
+const renderTranslationBlockColumn = (rows, mode, columnType) => {
+  const contentClass = columnType === 'zh' ? 'translation-text' : 'translation-original';
+  const blocks = buildPresentationBlocks(rows);
+
+  return blocks
+    .map((block) => {
+      if (block.kind === 'heading') {
+        return block.rows
+          .map(
+            (row) =>
+              `\n              <div class="translation-block-row translation-block-row--heading"><div class="${contentClass}">${escapeHtml(row[columnType])}</div></div>`
+          )
+          .join('');
+      }
+
+      if (block.kind === 'list') {
+        const items = block.rows
+          .map(
+            (row) =>
+              `\n                <li class="translation-list-item">${escapeHtml(stripListMarker(row[columnType]))}</li>`
+          )
+          .join('');
+        return `\n              <div class="translation-block-row translation-block-row--list"><ul class="translation-list">${items}\n              </ul></div>`;
+      }
+
+      const paragraph = block.rows.map((row) => String(row[columnType] || '').trim()).join(' ');
+      return `\n              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">${escapeHtml(paragraph)}</p></div>`;
+    })
+    .join('');
+};
+
 const scoreLevelClass = (score) => {
   if (score >= 90) return 'score-summary--excellent';
   if (score >= 80) return 'score-summary--strong';
@@ -106,12 +195,7 @@ const translationPanelCopy =
 
 const translationSectionsHtml = report.translation.sections
   .map((section) => {
-    const zhRows = section.rows
-      .map(
-        (row) =>
-          `\n              <div class="translation-block-row"><div class="translation-text">${escapeHtml(row.zh)}</div></div>`
-      )
-      .join('');
+    const zhRows = renderTranslationBlockColumn(section.rows, translationMode, 'zh');
 
     if (translationMode === 'summary') {
       return `
@@ -127,12 +211,7 @@ const translationSectionsHtml = report.translation.sections
             </article>`;
     }
 
-    const enRows = section.rows
-      .map(
-        (row) =>
-          `\n              <div class="translation-block-row"><div class="translation-original">${escapeHtml(row.en)}</div></div>`
-      )
-      .join('');
+    const enRows = renderTranslationBlockColumn(section.rows, translationMode, 'en');
 
     return `
             <article class="translation-block">

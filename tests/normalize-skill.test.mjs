@@ -120,6 +120,21 @@ description: 用于评估中文 skill 的结构质量
 2. 标注 dry_run
 `;
 
+const foldedDescriptionSource = `---
+name: folded-description-skill
+description: >
+  Generate publishable reports for unfamiliar skills.
+  Preserve full bilingual translation with stable row alignment.
+---
+
+# Folded Description Skill
+
+## Workflow
+
+- Read source
+- Write report
+`;
+
 test('rewriteGitHubBlobToRaw converts github blob URLs to raw URLs', () => {
   const input = 'https://github.com/kepano/obsidian-skills/blob/main/skills/json-canvas/SKILL.md';
   const output = rewriteGitHubBlobToRaw(input);
@@ -382,6 +397,20 @@ test('normalizeSkillMarkdown uses summary mode for primarily Chinese source text
       'Write updated output'
     ]
   );
+});
+
+test('normalizeSkillMarkdown preserves folded frontmatter descriptions as report purpose', () => {
+  const normalized = normalizeSkillMarkdown(foldedDescriptionSource, {
+    originalSource: 'folded-description-source.md',
+    resolvedSource: 'folded-description-source.md'
+  });
+
+  assert.equal(normalized.frontmatter.description, 'Generate publishable reports for unfamiliar skills. Preserve full bilingual translation with stable row alignment.');
+  assert.equal(
+    normalized.reportSeeds.summary.purpose,
+    'Generate publishable reports for unfamiliar skills. Preserve full bilingual translation with stable row alignment.'
+  );
+  assert.equal(normalized.reportSeeds.translation.mode, 'full');
 });
 
 test('normalize-skill CLI writes to ./skill-inspector/<skill-name>/normalized-source.json by default', () => {

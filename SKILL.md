@@ -104,13 +104,19 @@ Workflow rules:
 Translation rules for report size:
 
 - Use `translation.mode` to control verbosity
-- Prefer `compact` for routine inspections
-- Use `full` only when side-by-side translation of most sections materially helps the reader
+- Default to `full` for non-Chinese skills
+- Keep `full` as the primary path when the report is meant for human review, comparison across models, or publishable bilingual output
+- Use `compact` only when the user explicitly asks for a shorter report or when a downstream consumer requests reduced translation volume
 - Use `summary` when the source skill is already primarily Chinese and the report should present a Chinese summary instead of bilingual source/translation rows
 - When using overlays, use `translation.coverage: full_human`
 - Keep the draft's English rows and let the overlay provide only Chinese `zh`
 - Keep `translation.sections[*]` in the standard shape: `title_zh`, `title_en`, `rows[*].zh`, and `rows[*].en`
 - For bilingual output, every translated row must preserve the English counterpart in `rows[*].en`
+- For `full` output, preserve section count, section order, and row count exactly; do not delete, merge, compress, or skip rows
+- For `full` output, treat missing sections, missing rows, or blank `zh` cells as report-breaking errors that must be fixed before rendering
+- For `full` output, treat placeholder text such as `（待补充中文翻译）`, `TODO`, or `TBD` as untranslated failure
+- For `full` output, treat copying the English sentence into `zh` as untranslated failure unless the row is primarily commands, paths, URLs, variables, or other preserved tokens
+- For `full` output, ensure each natural-language row contains meaningful Chinese content rather than only preserved English tokens
 - For `summary` output, fill `rows[*].zh` with Chinese summary text and leave `rows[*].en` empty when no source-language counterpart should be shown
 - When workflow node labels include domain terms such as `baseline`, `dry_run`, `git revert`, or product names, prefer preserving the original-language term instead of translating it mechanically
 
@@ -120,6 +126,7 @@ Validation rules before rendering:
 
 - Verify that `report.json` already conforms to `templates/report.schema.json`
 - Verify that `translation.sections[*].rows[*]` contains both `zh` and `en` when bilingual output is expected
+- Verify that `full` translation output preserves one-to-one section and row alignment with the draft English skeleton
 - Verify that `workflow.nodes` and `workflow.edges` exist before Mermaid rendering
 - Verify that Mermaid generation uses safe mapped node ids rather than raw workflow ids whenever structured workflow data is converted into Mermaid text
 - If any of these checks fail, return to JSON correction before attempting HTML rendering
@@ -183,6 +190,7 @@ Optional preprocessing helper:
 - Let the model fill `workflow` in the overlay when heuristic workflow extraction is too rigid or inaccurate
 - Prefer `translation.coverage: full_human` for complete translation with lower output token cost
 - Let the model write a small `report.overlay.json` that focuses on judgment-heavy fields
+- In `full` mode, keep `report.overlay.json.translation.sections[*]` limited to `title_zh` and row-level `zh`; do not rewrite English rows in the overlay
 - `node scripts/finalize-report.mjs skill-inspector/<skill-name>/report.draft.json skill-inspector/<skill-name>/report.overlay.json`
 
 ## Evaluation Hints
@@ -250,7 +258,8 @@ Requirements:
 - Do not invent sections that are unsupported by the source
 - Do not translate commands, code, paths, URLs, or frontmatter keys
 - Deduplicate repeated references while preserving the most useful evidence line
-- Prefer compact translation and compact evidence selection when they preserve meaning
+- For summary fields, never emit placeholder scalars such as bare `>` or `|`; use a complete one-sentence purpose statement grounded in the source
+- Prefer complete bilingual translation over compact translation unless the user explicitly requests compression
 - Always provide at least one concrete suggestion
 - Always provide an `install` result, even when it is heuristic or `unknown`
 - When HTML includes embedded JSON for client-side rendering, verify the generated payload can be parsed successfully rather than assuming escaped text will work
