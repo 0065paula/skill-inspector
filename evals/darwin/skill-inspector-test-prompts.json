@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "prompt": "Inspect this pasted SKILL.md and generate report.json plus report.html under the default output directory.",
+    "expected": "Produces canonical report.json first, then renders report.html in the default skill-inspector/<skill-name>/ directory."
+  },
+  {
+    "id": 2,
+    "prompt": "Read /absolute/path/to/SKILL.md, explain what triggers this skill, map its workflow, and highlight the most important references and safety boundaries.",
+    "expected": "Explains trigger conditions, maps execution flow clearly, and grounds references and safety findings in source evidence."
+  },
+  {
+    "id": 3,
+    "prompt": "Review this GitHub SKILL.md blob URL, rewrite it to the raw source when possible, evaluate whether the skill is worth using, and summarize installation status and improvement suggestions.",
+    "expected": "Handles raw URL rewriting and fallback correctly, preserves source traceability, and returns install, score, and suggestions."
+  }
+]

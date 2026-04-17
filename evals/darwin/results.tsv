@@ -1,0 +1,6 @@
+timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
+2026-04-17T15:25:00+08:00	baseline	skill-inspector	-	84	baseline	boundary_conditions	Strong canonical JSON and workflow guidance; fallback order and failure handling need sharper instructions	dry_run
+2026-04-17T15:33:00+08:00	working-tree	skill-inspector	84	89	keep	boundary_conditions	Added explicit stop conditions, JSON correction rules, and post-write verification to reduce fabricated outputs and HTML drift	dry_run
+2026-04-17T15:41:00+08:00	working-tree	skill-inspector	89	92	keep	workflow_clarity	Added a short preferred execution path and fallback path to reduce ambiguity around helper-script order and manual continuation	dry_run
+2026-04-17T15:49:00+08:00	working-tree	skill-inspector	92	94	keep	checkpoint_design	Added a short completion checklist to tighten final self-review before responding with artifact locations	dry_run
+2026-04-17T15:57:00+08:00	working-tree	skill-inspector	94	95	keep	instruction_specificity	Removed duplicated schema-write guidance and merged write-order rules so the main path stays shorter without losing stop conditions	dry_run
