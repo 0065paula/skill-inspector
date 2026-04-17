@@ -1,0 +1,247 @@
+{
+  "summary": {
+    "title": "Skill Inspector",
+    "purpose": "用于分析单个 skill 来源，并生成结构化 `report.json` 与可阅读的 `report.html`；当前版本强化了 phase-aware workflow 建图、完整翻译反作弊校验和段落级翻译呈现。",
+    "score_total": 93,
+    "risk_level": "低风险"
+  },
+  "workflow": {
+    "caption": "主路径先归一化来源，再分别完成 workflow 建模与翻译/洞察补全，最后收敛到 canonical `report.json` 并渲染 `report.html`。结构化 workflow 是主干，schema、prompt 和模板作为侧挂依赖。",
+    "nodes": [
+      { "id": "input", "label": "Receive skill source" },
+      { "id": "normalize", "label": "Normalize source & evidence" },
+      { "id": "workflow_graph", "label": "Derive workflow graph" },
+      { "id": "translation_review", "label": "Translate & assess report" },
+      { "id": "report_json", "label": "Build canonical report.json" },
+      { "id": "render", "label": "Render report.html" },
+      { "id": "write", "label": "Write report artifacts", "kind": "terminal" },
+      { "id": "schema", "label": "templates/report.schema.json", "kind": "reference" },
+      { "id": "workflow_prompt", "label": "prompts/workflow-generation.md", "kind": "reference" },
+      { "id": "translation_prompt", "label": "prompts/translation.md", "kind": "reference" },
+      { "id": "insights_prompt", "label": "prompts/insights.md", "kind": "reference" },
+      { "id": "html_template", "label": "templates/report.html", "kind": "reference" }
+    ],
+    "edges": [
+      { "from": "input", "to": "normalize" },
+      { "from": "normalize", "to": "workflow_graph" },
+      { "from": "normalize", "to": "translation_review" },
+      { "from": "workflow_graph", "to": "report_json" },
+      { "from": "translation_review", "to": "report_json" },
+      { "from": "report_json", "to": "render" },
+      { "from": "render", "to": "write" },
+      { "from": "schema", "to": "report_json", "label": "Required" },
+      { "from": "workflow_prompt", "to": "workflow_graph", "label": "Guides graph mode" },
+      { "from": "translation_prompt", "to": "translation_review", "label": "Guides translation" },
+      { "from": "insights_prompt", "to": "translation_review", "label": "Guides score & suggestions" },
+      { "from": "html_template", "to": "render", "label": "Required" }
+    ]
+  },
+  "translation": {
+    "mode": "compact",
+    "sections": [
+      {
+        "title_zh": "概述",
+        "title_en": "Overview",
+        "rows": [
+          {
+            "zh": "一次分析一个 skill 来源，并产出结构化的 `report.json` 与整理好的 `report.html`。",
+            "en": "Analyze one skill source at a time and produce:"
+          },
+          {
+            "zh": "这是一个 agent-native 版本，明确要求使用当前目录里的模板、schema 与 prompt，而不是依赖 Python 分析脚本。",
+            "en": "This version is agent-native. Do not rely on Python analysis scripts. Use the templates and schema in this directory and let the current agent perform the analysis."
+          }
+        ]
+      },
+      {
+        "title_zh": "结构化输出优先",
+        "title_en": "Structured JSON First",
+        "rows": [
+          {
+            "zh": "在生成 HTML 之前，必须先创建符合 `templates/report.schema.json` 的 `report.json`，并把它当成唯一 canonical artifact。",
+            "en": "Before generating HTML, create a `report.json` object that conforms to: `templates/report.schema.json`."
+          },
+          {
+            "zh": "这份 skill 现在明确禁止生成自定义中间 report shape 或手写 Mermaid 作为主路径，所有渲染都应从标准 JSON 出发。",
+            "en": "`report.json` must be the first valid canonical artifact. Do not create a custom intermediate report shape and convert it later."
+          }
+        ]
+      },
+      {
+        "title_zh": "翻译质量控制",
+        "title_en": "Translation Quality Controls",
+        "rows": [
+          {
+            "zh": "非中文 skill 默认走 `full`，并要求 section 与 row 与英文骨架一一对应；缺行、空 `zh`、占位文本和整句英文复制都属于失败。",
+            "en": "Default to `full` for non-Chinese skills. For `full` output, preserve section count, section order, and row count exactly; do not delete, merge, compress, or skip rows."
+          },
+          {
+            "zh": "`prompts/translation.md` 还补了正反样例，覆盖标题、纯 prose、路径、命令、变量以及典型作弊样本，用来对齐模型风格而不是只靠 blacklist。",
+            "en": "Load: `prompts/translation.md`."
+          }
+        ]
+      },
+      {
+        "title_zh": "Workflow 建图策略",
+        "title_en": "Workflow Guidance",
+        "rows": [
+          {
+            "zh": "workflow 现在强调结构化 `nodes` / `edges`，并要求渲染器从这些结构推导 Mermaid，而不是直接手写图文本。",
+            "en": "Use structured workflow data as the canonical representation. Let the local renderer derive Mermaid from the workflow structure."
+          },
+          {
+            "zh": "`prompts/workflow-generation.md` 新增了 `phase_serial` 与 `phase_with_internal_steps` 等模式指引，目的不是更强约束，而是让模型先识别流程类型，再选择合适图法。",
+            "en": "Load `prompts/workflow-generation.md` when the workflow graph needs language-level interpretation rather than simple heuristic extraction."
+          }
+        ]
+      },
+      {
+        "title_zh": "渲染与阅读体验",
+        "title_en": "Rendering and Reading Experience",
+        "rows": [
+          {
+            "zh": "HTML 只能从标准 `report.json` 渲染，且在 Mermaid 前会把 workflow id 映射成安全节点 id，避免 `style`、`class` 等保留字破坏图。",
+            "en": "When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first."
+          },
+          {
+            "zh": "渲染层现在保留逐行真源做校验，同时把连续 prose 行聚合成段落、把列表行聚合成列表块，让双语阅读更接近真实文档。",
+            "en": "The local renderer should fill the HTML template from `report.json`."
+          }
+        ]
+      }
+    ]
+  },
+  "references": [
+    {
+      "target": "templates/report.schema.json",
+      "kind": "file",
+      "summary": "定义 canonical `report.json` 的字段结构，是先 JSON 后 HTML 这条主路径的硬约束来源。",
+      "condition": "Need authoritative rules",
+      "line": "L21"
+    },
+    {
+      "target": "prompts/workflow-generation.md",
+      "kind": "file",
+      "summary": "定义 workflow family、phase-aware 正反例与主干/依赖区分原则，决定流程图是否贴近原文执行结构。",
+      "condition": null,
+      "line": "L98"
+    },
+    {
+      "target": "prompts/translation.md",
+      "kind": "file",
+      "summary": "约束完整翻译的保留项、禁止项与 few-shot 样本，是翻译真实性和风格对齐的关键依据。",
+      "condition": null,
+      "line": "L214"
+    },
+    {
+      "target": "prompts/insights.md",
+      "kind": "file",
+      "summary": "控制 suggestions、score rationale 等判断型内容的粒度和风格，避免泛泛而谈。",
+      "condition": null,
+      "line": "L227"
+    },
+    {
+      "target": "templates/report.html",
+      "kind": "file",
+      "summary": "承接最终 HTML 渲染；当前版本还负责把连续 prose 行合并成段落、把列表项合并成 list block。",
+      "condition": null,
+      "line": "L145"
+    },
+    {
+      "target": "scripts/finalize-report.mjs",
+      "kind": "file",
+      "summary": "负责 draft 与 overlay 的合并和最终 shape 校验，也是拦截假完整翻译与 fallback 摘要的最后一道关口。",
+      "condition": null,
+      "line": "L194"
+    }
+  ],
+  "safety": {
+    "level_code": "low",
+    "level_label": "低风险",
+    "level_summary": "这份 skill 的主风险集中在本地文件读写、远程 raw 链接读取和客户端 HTML/JSON 渲染，而不是危险系统操作。当前版本已经把 canonical JSON、Mermaid-safe id 和假完整翻译拦截写进主流程，整体风险较低。",
+    "findings": [
+      {
+        "signal": "local-file-write",
+        "severity": "low",
+        "meaning": "默认会在本地输出 `normalized-source.json`、`report.draft.json`、`report.overlay.template.json`、`report.json` 和 `report.html`，副作用局限在报告产物目录。",
+        "evidence": "Write: `%当前目录%/skill-inspector/%skill-name%/report.json` and `%当前目录%/skill-inspector/%skill-name%/report.html`."
+      },
+      {
+        "signal": "remote-source-fetch",
+        "severity": "medium",
+        "meaning": "支持远程 skill 链接，并会先尝试 raw URL，再回退到原 GitHub 页面；风险主要在外部来源可信度和网络可达性。",
+        "evidence": "Fetch the raw URL first when the source is a GitHub file link. Fall back to the original GitHub page only when the raw URL returns a non-success response, empty body, or HTML page content."
+      },
+      {
+        "signal": "html-json-rendering",
+        "severity": "low",
+        "meaning": "页面会内嵌 Mermaid 和 JSON payload，但当前规则已经要求 JSON.parse-compatible 嵌入与 Mermaid-safe id 映射，降低了脚本上下文和保留字冲突风险。",
+        "evidence": "When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first."
+      }
+    ]
+  },
+  "install": {
+    "items": [
+      {
+        "platform": "Codex",
+        "status": "未安装",
+        "note": "/Users/paula/.codex/skills/skill-inspector"
+      },
+      {
+        "platform": "Agents",
+        "status": "未安装",
+        "note": "/Users/paula/.agents/skills/skill-inspector"
+      }
+    ]
+  },
+  "score": {
+    "dimensions": [
+      {
+        "name": "Trigger clarity",
+        "value": 19,
+        "rationale": "frontmatter description 很完整，触发场景覆盖 inspect、workflow、translation、safety、score、shareable report 等典型需求。"
+      },
+      {
+        "name": "Workflow structure",
+        "value": 19,
+        "rationale": "主流程坚持 normalize -> canonical JSON -> render HTML，workflow 和 translation 都有明确前置校验；最近还补了 phase-aware workflow family 指引。"
+      },
+      {
+        "name": "Reference quality",
+        "value": 18,
+        "rationale": "schema、translation prompt、workflow prompt、insights prompt 和 HTML template 都被明确点名，依赖关系清楚。"
+      },
+      {
+        "name": "Safety boundaries",
+        "value": 18,
+        "rationale": "本地写出、远程 raw fetch、Mermaid-safe 渲染和假完整翻译拦截都已经进入主规则层，边界描述较完整。"
+      },
+      {
+        "name": "Execution readiness",
+        "value": 19,
+        "rationale": "脚本链路、canonical JSON 约束、few-shot 翻译示例和段落级渲染都已经落到实现，离稳定自举只差自动化 overlay 生成。"
+      }
+    ]
+  },
+  "suggestions": [
+    {
+      "title": "为 self-report 固定 canonical fixture",
+      "detail": "把当前 `SKILL.md` 的自分析报告做成受版本控制的固定 fixture，并把 gh-pages 发布直接绑定到这份 canonical 产物，减少线上报告滞后。",
+      "priority": "high"
+    },
+    {
+      "title": "给 workflow 引入 phase 容器渲染",
+      "detail": "当前 prompt 已能区分 `phase_serial` 与 `phase_with_internal_steps`，下一步值得在渲染层提供 phase 容器或泳道，让 phase 主干与内部 step 的层级更直观。",
+      "priority": "medium"
+    },
+    {
+      "title": "把段落级展示升级成显式 block 数据",
+      "detail": "现在段落聚合发生在 render 阶段。后续可以考虑给 translation 增加 block-level presentation metadata，让 JSON 本身也承载阅读层语义。",
+      "priority": "medium"
+    }
+  ],
+  "source": {
+    "primary_label": "原始链接",
+    "primary_value": "https://github.com/0065paula/skill-inspector/blob/main/SKILL.md"
+  }
+}

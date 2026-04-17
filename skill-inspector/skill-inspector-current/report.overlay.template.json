@@ -1,0 +1,25 @@
+{
+  "summary": {
+    "score_total": 0,
+    "risk_level": "待评估"
+  },
+  "workflow": {
+    "caption": "待补充 workflow 图说明。",
+    "nodes": [],
+    "edges": []
+  },
+  "translation": {
+    "coverage": "full_human",
+    "sections": []
+  },
+  "safety": {
+    "level_code": "medium",
+    "level_label": "待评估",
+    "level_summary": "待结合来源信号中的外部访问、命令执行和依赖边界补充风险判断。",
+    "findings": []
+  },
+  "score": {
+    "dimensions": []
+  },
+  "suggestions": []
+}

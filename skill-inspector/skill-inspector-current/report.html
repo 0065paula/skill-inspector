@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Skill Inspector - Skill Inspector</title>
+    <script id="mermaid-source" type="application/json">"flowchart TD\nn_input[\"Receive skill source\"]\nn_normalize[\"Normalize source \u0026 evidence\"]\nn_workflow_graph[\"Derive workflow graph\"]\nn_translation_review[\"Translate \u0026 assess report\"]\nn_report_json[\"Build canonical report.json\"]\nn_render[\"Render report.html\"]\nn_write([\"Write report artifacts\"])\nn_schema[[\"templates/report.schema.json\"]]\nn_workflow_prompt[[\"prompts/workflow-generation.md\"]]\nn_translation_prompt[[\"prompts/translation.md\"]]\nn_insights_prompt[[\"prompts/insights.md\"]]\nn_html_template[[\"templates/report.html\"]]\nn_input --\u003e n_normalize\nn_normalize --\u003e n_workflow_graph\nn_normalize --\u003e n_translation_review\nn_workflow_graph --\u003e n_report_json\nn_translation_review --\u003e n_report_json\nn_report_json --\u003e n_render\nn_render --\u003e n_write\nn_schema --\u003e|Required| n_report_json\nn_workflow_prompt --\u003e|Guides graph mode| n_workflow_graph\nn_translation_prompt --\u003e|Guides translation| n_translation_review\nn_insights_prompt --\u003e|Guides score \u0026 suggestions| n_translation_review\nn_html_template --\u003e|Required| n_render"</script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: "loose",
+        theme: "base",
+        themeVariables: {
+          primaryColor: "#edf4fa",
+          primaryTextColor: "#223446",
+          primaryBorderColor: "#8aa0b4",
+          lineColor: "#73889b",
+          secondaryColor: "#f4f8fb",
+          tertiaryColor: "#f8fbfd",
+          clusterBkg: "#f4f8fb",
+          clusterBorder: "#8aa0b4",
+          fontFamily: "Avenir Next, Helvetica Neue, Segoe UI, sans-serif",
+          nodeBorder: "#8aa0b4"
+        }
+      });
+      const sourceEl = document.getElementById("mermaid-source");
+      const source = JSON.parse(sourceEl.textContent);
+      const targets = [
+        { id: "workflow-graph", key: "workflow" },
+        { id: "viewer-graph", key: "viewer" }
+      ];
+      for (const target of targets) {
+        const container = document.getElementById(target.id);
+        if (!container) continue;
+        const { svg } = await mermaid.render(`skill-inspector-${target.key}`, source);
+        container.innerHTML = svg;
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3f8fb;
+        --paper: rgba(249, 252, 254, 0.88);
+        --paper-strong: rgba(235, 243, 249, 0.9);
+        --ink: #182634;
+        --muted: #617385;
+        --line: rgba(77, 101, 124, 0.14);
+        --line-strong: rgba(58, 82, 105, 0.24);
+        --accent: #31597c;
+        --accent-soft: rgba(49, 89, 124, 0.09);
+        --risk-low: #1d7358;
+        --risk-medium: #8f6921;
+        --risk-high: #a14f3d;
+        --risk-critical: #a73a30;
+        --score-excellent: #336aa6;
+        --score-strong: #477eb2;
+        --score-good: #6a92bb;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font: 14px/1.75 "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top right, rgba(182, 202, 225, 0.34), transparent 28%),
+          linear-gradient(180deg, #f9fcfe 0%, var(--bg) 100%);
+        color: var(--ink);
+      }
+      main {
+        max-width: 1260px;
+        margin: 0 auto;
+        padding: 28px 30px 80px;
+      }
+      .eyebrow,
+      .section-kicker {
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .eyebrow {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        margin: 0 0 14px;
+      }
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+        font-weight: 600;
+        color: #162433;
+      }
+      h1 {
+        max-width: none;
+        margin-bottom: 12px;
+        font-size: clamp(2.6rem, 4.6vw, 4.3rem);
+        line-height: 0.98;
+        letter-spacing: -0.04em;
+      }
+      h2 {
+        margin-bottom: 6px;
+        font-size: 1.7rem;
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+      }
+      h3 {
+        margin-bottom: 6px;
+        font-size: 1.1rem;
+        line-height: 1.22;
+        letter-spacing: -0.02em;
+      }
+      p { margin: 0 0 10px; }
+      .hero {
+        padding: 0 0 18px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid var(--line-strong);
+      }
+      .hero-copy {
+        display: grid;
+        gap: 0;
+        min-width: 0;
+      }
+      .summary {
+        max-width: 60ch;
+        margin-bottom: 12px;
+        font-size: 16px;
+        line-height: 1.7;
+        color: #243647;
+      }
+      .source-inline {
+        max-width: 72ch;
+        margin: 0;
+        padding-left: 0;
+        border-left: 0;
+        font-size: 12.5px;
+        line-height: 1.7;
+        color: #516375;
+        word-break: break-word;
+      }
+      .source-inline strong {
+        color: #213244;
+        font-weight: 600;
+      }
+      .source-inline a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .source-inline a:hover {
+        text-decoration: underline;
+      }
+      .hero-metrics {
+        margin: 22px 0 0;
+        padding: 14px 0 0;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        border-top: 1px solid var(--line);
+      }
+      .hero-stat {
+        margin: 0;
+        padding-top: 0;
+      }
+      .hero-stat dt {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .hero-stat dd {
+        margin: 0;
+        color: var(--accent);
+        font-size: 18px;
+        line-height: 1.2;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .tone-low { color: var(--risk-low) !important; }
+      .tone-medium { color: var(--risk-medium) !important; }
+      .tone-high { color: var(--risk-high) !important; }
+      .tone-critical { color: var(--risk-critical) !important; }
+      .nav-shell {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        margin-bottom: 24px;
+        background: rgba(243, 248, 251, 0.1);
+        border-bottom: 1px solid rgba(77, 101, 124, 0.1);
+        backdrop-filter: blur(10px);
+      }
+      .nav {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        padding: 10px 0 11px;
+      }
+      .nav-link {
+        color: #506376;
+        text-decoration: none;
+        white-space: nowrap;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding-bottom: 4px;
+      }
+      .nav-link:hover {
+        color: var(--accent);
+      }
+      .report-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 288px;
+        gap: 34px;
+        align-items: start;
+      }
+      .main-column,
+      .side-rail {
+        min-width: 0;
+      }
+      .main-column {
+        display: grid;
+        gap: 36px;
+        padding-right: 8px;
+      }
+      .side-rail {
+        display: grid;
+        gap: 18px;
+        position: sticky;
+        top: 56px;
+        align-self: start;
+        padding-left: 20px;
+        border-left: 1px solid var(--line);
+      }
+      .appendix-head {
+        padding: 2px 0 4px;
+      }
+      .appendix-head p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .panel,
+      .meta-card {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+      .panel {
+        padding-top: 0;
+      }
+      .panel-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .panel-head .muted {
+        max-width: 56ch;
+      }
+      .viewer-trigger,
+      .viewer-close {
+        border: 1px solid var(--line-strong);
+        border-radius: 0;
+        background: rgba(248, 251, 253, 0.9);
+        color: #203142;
+        padding: 8px 12px;
+        font: inherit;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .viewer-trigger:hover,
+      .viewer-close:hover {
+        background: rgba(255, 255, 255, 0.96);
+      }
+      .workflow-panel,
+      .translation-panel {
+        padding-top: 0;
+        border-top: 0;
+      }
+      .graph-shell {
+        min-height: 320px;
+        overflow: auto;
+        background: #fff;
+        border: 1px solid rgba(77, 101, 124, 0.1);
+        padding: 12px 0;
+      }
+      .graph-shell svg {
+        min-width: 820px;
+        height: auto;
+      }
+      .translation-panel {
+        display: grid;
+        gap: 20px;
+      }
+      .translation-block {
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+      .translation-block:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .translation-compare {
+        display: grid;
+        grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+        gap: 22px;
+      }
+      .translation-col {
+        min-width: 0;
+      }
+      .translation-col + .translation-col {
+        padding-left: 18px;
+        border-left: 1px solid var(--line);
+      }
+      .translation-block-row {
+        padding: 10px 0;
+        border-bottom: 1px dashed rgba(77, 101, 124, 0.12);
+      }
+      .translation-block-row--heading {
+        padding-top: 2px;
+      }
+      .translation-block-row--paragraph,
+      .translation-block-row--list {
+        padding-top: 8px;
+        padding-bottom: 12px;
+      }
+      .translation-block-row:first-child {
+        padding-top: 0;
+      }
+      .translation-block-row:last-child {
+        border-bottom: 0;
+      }
+      .translation-text {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #203244;
+        font-size: 13.5px;
+        line-height: 1.8;
+      }
+      .translation-original {
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #627485;
+        font-size: 12.5px;
+        line-height: 1.75;
+      }
+      .translation-paragraph {
+        margin: 0;
+        white-space: normal;
+      }
+      .translation-list {
+        margin: 0;
+        padding-left: 20px;
+        display: grid;
+        gap: 6px;
+      }
+      .translation-list-item {
+        color: inherit;
+        line-height: 1.75;
+      }
+      .meta-card {
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+      .side-rail .meta-card:first-of-type {
+        padding-top: 0;
+        border-top: 0;
+      }
+      .meta-card h2 {
+        margin-bottom: 10px;
+        font-size: 1rem;
+        line-height: 1.25;
+      }
+      .meta-stack,
+      .status-grid,
+      .source-list {
+        display: grid;
+        gap: 12px;
+      }
+      .meta-row,
+      .status-row,
+      .score-row,
+      .source-item {
+        min-width: 0;
+        padding: 0 0 12px;
+        border-bottom: 1px dashed rgba(77, 101, 124, 0.16);
+      }
+      .meta-row:last-child,
+      .status-row:last-child,
+      .score-row:last-child,
+      .source-item:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+      }
+      .meta-row strong,
+      .source-item strong {
+        display: block;
+        margin-bottom: 4px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        font-size: 13px;
+      }
+      .status-row > div,
+      .score-row-head > *,
+      .safety-finding-title > * {
+        min-width: 0;
+      }
+      .score-summary,
+      .safety-summary {
+        display: grid;
+        gap: 6px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .score-summary strong,
+      .safety-summary strong {
+        display: block;
+        font-size: 22px;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+      }
+      .score-summary--excellent strong { color: var(--score-excellent); }
+      .score-summary--strong strong { color: var(--score-strong); }
+      .score-summary--good strong { color: var(--score-good); }
+      .score-summary .meta-copy,
+      .safety-summary .meta-copy {
+        max-width: 28ch;
+        font-size: 13px;
+        line-height: 1.72;
+        color: #415366;
+      }
+      .meta-row .muted,
+      .status-row .muted,
+      .source-item .muted {
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .side-rail .section-kicker {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+      }
+      .score-row {
+        display: grid;
+        gap: 5px;
+      }
+      .score-row strong,
+      .status-row strong {
+        font-size: 12.5px;
+      }
+      .score-row-head,
+      .safety-finding-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .score-label {
+        color: #223446;
+      }
+      .score-value {
+        color: #697b8d;
+      }
+      .meta-copy {
+        font-size: 12.5px;
+        line-height: 1.68;
+        color: #33485a;
+        overflow-wrap: anywhere;
+      }
+      .reference-tags {
+        display: block;
+        min-width: 0;
+        margin-top: 7px;
+        font-size: 10px;
+        line-height: 1.45;
+        color: #718396;
+      }
+      .reference-tag {
+        display: inline;
+        padding: 0;
+        border-radius: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font-size: inherit;
+        line-height: inherit;
+        letter-spacing: 0.04em;
+        text-transform: none;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .reference-tag + .reference-tag::before {
+        content: "|";
+        display: inline;
+        margin: 0 6px;
+        color: #98a6b4;
+      }
+      .reference-tag--condition {
+        color: #7d8791;
+      }
+      .safety-finding-title {
+        margin-bottom: 4px;
+      }
+      .safety-finding-title strong {
+        margin: 0;
+      }
+      .safety-severity {
+        font-size: 10.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .score-bar {
+        height: 6px;
+        background: rgba(49, 89, 124, 0.1);
+        overflow: hidden;
+      }
+      .score-bar span {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #7da6cf 0%, #31597c 100%);
+      }
+      .score-bar--excellent span {
+        background: linear-gradient(90deg, #6f9dcf 0%, #336aa6 100%);
+      }
+      .score-bar--strong span {
+        background: linear-gradient(90deg, #88afd2 0%, #477eb2 100%);
+      }
+      .score-bar--good span {
+        background: linear-gradient(90deg, #a1bad2 0%, #6a92bb 100%);
+      }
+      .source-item span {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .viewer-shell {
+        position: fixed;
+        inset: 0;
+        display: none;
+        padding: 24px;
+        background: rgba(20, 31, 43, 0.56);
+        z-index: 30;
+      }
+      .viewer-shell.is-open {
+        display: block;
+      }
+      .viewer {
+        max-width: 1280px;
+        height: calc(100vh - 48px);
+        margin: 0 auto;
+        background: rgba(248, 251, 253, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 26px 72px rgba(16, 30, 42, 0.2);
+        display: flex;
+        flex-direction: column;
+      }
+      .viewer-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .viewer-body {
+        padding: 20px;
+        overflow: auto;
+      }
+      @media (max-width: 1180px) {
+        main {
+          padding: 24px 20px 64px;
+        }
+        .report-shell {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+        .side-rail {
+          position: static;
+          padding-left: 0;
+          border-left: 0;
+        }
+        .translation-col + .translation-col {
+          padding-left: 0;
+          border-left: 0;
+        }
+        .panel-head {
+          grid-template-columns: 1fr;
+        }
+        .translation-compare {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 900px) {
+        main {
+          padding: 22px 16px 56px;
+        }
+        .hero {
+          padding-bottom: 16px;
+        }
+        .hero-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        h1 {
+          max-width: 100%;
+          font-size: clamp(2.3rem, 12vw, 3.2rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Skill Inspector</p>
+          <h1>Skill Inspector</h1>
+          <p class="summary">用于分析单个 skill 来源，并生成结构化 `report.json` 与可阅读的 `report.html`；当前版本强化了 phase-aware workflow 建图、完整翻译反作弊校验和段落级翻译呈现。</p>
+          <p class="source-inline"><strong>Source:</strong> <a href="https://github.com/0065paula/skill-inspector/blob/main/SKILL.md" target="_blank" rel="noreferrer">https://github.com/0065paula/skill-inspector/blob/main/SKILL.md</a></p>
+        </div>
+        <dl class="hero-metrics">
+          <div class="hero-stat">
+            <dt>评分</dt>
+            <dd>93/100</dd>
+          </div>
+          <div class="hero-stat">
+            <dt>风险</dt>
+            <dd>低风险</dd>
+          </div>
+          <div class="hero-stat">
+            <dt>引用</dt>
+            <dd>6</dd>
+          </div>
+          <div class="hero-stat">
+            <dt>翻译模式</dt>
+            <dd>compact</dd>
+          </div>
+        </dl>
+      </section>
+
+      <div class="nav-shell">
+        <nav class="nav" aria-label="Report sections">
+          <a class="nav-link" href="#workflow">流程图</a>
+          <a class="nav-link" href="#translation">中文翻译</a>
+          <a class="nav-link" href="#references">引用</a>
+          <a class="nav-link" href="#safety">安全</a>
+          <a class="nav-link" href="#suggestions">建议</a>
+          <a class="nav-link" href="#install">安装</a>
+          <a class="nav-link" href="#score">评分</a>
+        </nav>
+      </div>
+
+      <div class="report-shell">
+        <div class="main-column">
+        <section class="panel workflow-panel" id="workflow">
+          <div class="panel-head">
+            <div>
+                <h2>执行逻辑流程图</h2>
+              <!-- Trigger conditions for references should be expressed on Mermaid edges whenever available. -->
+              <p class="muted">主路径先归一化来源，再分别完成 workflow 建模与翻译/洞察补全，最后收敛到 canonical `report.json` 并渲染 `report.html`。结构化 workflow 是主干，schema、prompt 和模板作为侧挂依赖。</p>
+            </div>
+            <button class="viewer-trigger" type="button" data-open-viewer="mermaid-viewer">全屏查看</button>
+          </div>
+            <div class="graph-shell"><div id="workflow-graph"></div></div>
+          </section>
+
+          <section class="panel translation-panel" id="translation">
+            <div class="panel-head">
+              <div>
+                <h2>中文翻译</h2>
+                <p class="muted">按内容段落展开，保持中文与原文左右对照。</p>
+              </div>
+            </div>
+            
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>概述</h3>
+                  <p class="muted">Overview</p>
+                </div>
+              </div>
+              <div class="translation-compare">
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">一次分析一个 skill 来源，并产出结构化的 `report.json` 与整理好的 `report.html`。 这是一个 agent-native 版本，明确要求使用当前目录里的模板、schema 与 prompt，而不是依赖 Python 分析脚本。</p></div>
+                </div>
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">Analyze one skill source at a time and produce: This version is agent-native. Do not rely on Python analysis scripts. Use the templates and schema in this directory and let the current agent perform the analysis.</p></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>结构化输出优先</h3>
+                  <p class="muted">Structured JSON First</p>
+                </div>
+              </div>
+              <div class="translation-compare">
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">在生成 HTML 之前，必须先创建符合 `templates/report.schema.json` 的 `report.json`，并把它当成唯一 canonical artifact。 这份 skill 现在明确禁止生成自定义中间 report shape 或手写 Mermaid 作为主路径，所有渲染都应从标准 JSON 出发。</p></div>
+                </div>
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">Before generating HTML, create a `report.json` object that conforms to: `templates/report.schema.json`. `report.json` must be the first valid canonical artifact. Do not create a custom intermediate report shape and convert it later.</p></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>翻译质量控制</h3>
+                  <p class="muted">Translation Quality Controls</p>
+                </div>
+              </div>
+              <div class="translation-compare">
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">非中文 skill 默认走 `full`，并要求 section 与 row 与英文骨架一一对应；缺行、空 `zh`、占位文本和整句英文复制都属于失败。 `prompts/translation.md` 还补了正反样例，覆盖标题、纯 prose、路径、命令、变量以及典型作弊样本，用来对齐模型风格而不是只靠 blacklist。</p></div>
+                </div>
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">Default to `full` for non-Chinese skills. For `full` output, preserve section count, section order, and row count exactly; do not delete, merge, compress, or skip rows. Load: `prompts/translation.md`.</p></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>Workflow 建图策略</h3>
+                  <p class="muted">Workflow Guidance</p>
+                </div>
+              </div>
+              <div class="translation-compare">
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">workflow 现在强调结构化 `nodes` / `edges`，并要求渲染器从这些结构推导 Mermaid，而不是直接手写图文本。 `prompts/workflow-generation.md` 新增了 `phase_serial` 与 `phase_with_internal_steps` 等模式指引，目的不是更强约束，而是让模型先识别流程类型，再选择合适图法。</p></div>
+                </div>
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">Use structured workflow data as the canonical representation. Let the local renderer derive Mermaid from the workflow structure. Load `prompts/workflow-generation.md` when the workflow graph needs language-level interpretation rather than simple heuristic extraction.</p></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="translation-block">
+              <div class="panel-head">
+                <div>
+                  <h3>渲染与阅读体验</h3>
+                  <p class="muted">Rendering and Reading Experience</p>
+                </div>
+              </div>
+              <div class="translation-compare">
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">HTML 只能从标准 `report.json` 渲染，且在 Mermaid 前会把 workflow id 映射成安全节点 id，避免 `style`、`class` 等保留字破坏图。 渲染层现在保留逐行真源做校验，同时把连续 prose 行聚合成段落、把列表行聚合成列表块，让双语阅读更接近真实文档。</p></div>
+                </div>
+                <div class="translation-col">
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first. The local renderer should fill the HTML template from `report.json`.</p></div>
+                </div>
+              </div>
+            </article>
+          </section>
+        </div>
+
+        <aside class="side-rail">
+          <div class="appendix-head">
+            <p class="section-kicker">附录</p>
+          </div>
+          <section class="meta-card" id="references">
+            <h2>引用关系</h2>
+            <!-- Preferred appendix rendering:
+                 target -> one-sentence summary -> kind
+                 Keep trigger conditions in Mermaid edges rather than repeating them here. -->
+            <div class="meta-stack">
+            <div class="meta-row">
+              <strong>templates/report.schema.json</strong>
+              <div class="meta-copy">定义 canonical `report.json` 的字段结构，是先 JSON 后 HTML 这条主路径的硬约束来源。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L21</span>
+                <span class="reference-tag reference-tag--condition">Need authoritative rules</span>
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>prompts/workflow-generation.md</strong>
+              <div class="meta-copy">定义 workflow family、phase-aware 正反例与主干/依赖区分原则，决定流程图是否贴近原文执行结构。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L98</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>prompts/translation.md</strong>
+              <div class="meta-copy">约束完整翻译的保留项、禁止项与 few-shot 样本，是翻译真实性和风格对齐的关键依据。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L214</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>prompts/insights.md</strong>
+              <div class="meta-copy">控制 suggestions、score rationale 等判断型内容的粒度和风格，避免泛泛而谈。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L227</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>templates/report.html</strong>
+              <div class="meta-copy">承接最终 HTML 渲染；当前版本还负责把连续 prose 行合并成段落、把列表项合并成 list block。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L145</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>scripts/finalize-report.mjs</strong>
+              <div class="meta-copy">负责 draft 与 overlay 的合并和最终 shape 校验，也是拦截假完整翻译与 fallback 摘要的最后一道关口。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L194</span>
+                
+              </div>
+            </div>
+            </div>
+          </section>
+
+          <section class="meta-card" id="safety">
+            <h2>安全评估</h2>
+            <!-- Preferred rendering:
+                 1. a safety summary block for the current risk level
+                 2. one row per concrete finding below it -->
+            
+            <div class="safety-summary tone-low">
+              <strong>低风险</strong>
+              <div class="meta-copy">这份 skill 的主风险集中在本地文件读写、远程 raw 链接读取和客户端 HTML/JSON 渲染，而不是危险系统操作。当前版本已经把 canonical JSON、Mermaid-safe id 和假完整翻译拦截写进主流程，整体风险较低。</div>
+            </div>
+            <div class="meta-stack">
+              <div class="meta-row">
+                <div class="safety-finding-title">
+                  <strong>local-file-write</strong>
+                  <span class="safety-severity">low</span>
+                </div>
+                <div class="meta-copy">默认会在本地输出 `normalized-source.json`、`report.draft.json`、`report.overlay.template.json`、`report.json` 和 `report.html`，副作用局限在报告产物目录。</div>
+                <div class="muted">证据: Write: `%当前目录%/skill-inspector/%skill-name%/report.json` and `%当前目录%/skill-inspector/%skill-name%/report.html`.</div>
+              </div>
+
+              <div class="meta-row">
+                <div class="safety-finding-title">
+                  <strong>remote-source-fetch</strong>
+                  <span class="safety-severity">medium</span>
+                </div>
+                <div class="meta-copy">支持远程 skill 链接，并会先尝试 raw URL，再回退到原 GitHub 页面；风险主要在外部来源可信度和网络可达性。</div>
+                <div class="muted">证据: Fetch the raw URL first when the source is a GitHub file link. Fall back to the original GitHub page only when the raw URL returns a non-success response, empty body, or HTML page content.</div>
+              </div>
+
+              <div class="meta-row">
+                <div class="safety-finding-title">
+                  <strong>html-json-rendering</strong>
+                  <span class="safety-severity">low</span>
+                </div>
+                <div class="meta-copy">页面会内嵌 Mermaid 和 JSON payload，但当前规则已经要求 JSON.parse-compatible 嵌入与 Mermaid-safe id 映射，降低了脚本上下文和保留字冲突风险。</div>
+                <div class="muted">证据: When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first.</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="meta-card" id="suggestions">
+            <h2>优化建议</h2>
+            <div class="meta-stack">
+            <div class="meta-row">
+              <strong>为 self-report 固定 canonical fixture</strong>
+              <div class="meta-copy">把当前 `SKILL.md` 的自分析报告做成受版本控制的固定 fixture，并把 gh-pages 发布直接绑定到这份 canonical 产物，减少线上报告滞后。</div>
+              <div class="muted">优先级: high</div>
+            </div>
+
+            <div class="meta-row">
+              <strong>给 workflow 引入 phase 容器渲染</strong>
+              <div class="meta-copy">当前 prompt 已能区分 `phase_serial` 与 `phase_with_internal_steps`，下一步值得在渲染层提供 phase 容器或泳道，让 phase 主干与内部 step 的层级更直观。</div>
+              <div class="muted">优先级: medium</div>
+            </div>
+
+            <div class="meta-row">
+              <strong>把段落级展示升级成显式 block 数据</strong>
+              <div class="meta-copy">现在段落聚合发生在 render 阶段。后续可以考虑给 translation 增加 block-level presentation metadata，让 JSON 本身也承载阅读层语义。</div>
+              <div class="muted">优先级: medium</div>
+            </div>
+            </div>
+          </section>
+
+          <section class="meta-card" id="install">
+            <h2>安装情况</h2>
+            <!-- Preferred rendering:
+                 itemized platform rows only.
+                 Do not add a separate summary block when the result is already obvious. -->
+            <div class="status-grid">
+            <div class="status-row">
+              <div>
+                <strong>Codex</strong>
+                <div class="muted">/Users/paula/.codex/skills/skill-inspector</div>
+              </div>
+              <span>未安装</span>
+            </div>
+
+            <div class="status-row">
+              <div>
+                <strong>Agents</strong>
+                <div class="muted">/Users/paula/.agents/skills/skill-inspector</div>
+              </div>
+              <span>未安装</span>
+            </div>
+            </div>
+          </section>
+
+          <section class="meta-card" id="score">
+            <h2>评分维度</h2>
+            <!-- Preferred rendering:
+                 1. one summary block for the overall score impression
+                 2. itemized scoring rows below with user-friendly Chinese labels and semantic color differences -->
+            
+            <div class="score-summary score-summary--excellent">
+              <strong>93/100</strong>
+              <div class="meta-copy">整体质量很强，属于可直接投入使用的高约束技能。</div>
+            </div>
+            <div class="meta-stack">
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">Trigger clarity</strong>
+                  <span class="score-value">19/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:95%"></span></div>
+                <div class="meta-copy">frontmatter description 很完整，触发场景覆盖 inspect、workflow、translation、safety、score、shareable report 等典型需求。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">Workflow structure</strong>
+                  <span class="score-value">19/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:95%"></span></div>
+                <div class="meta-copy">主流程坚持 normalize -&gt; canonical JSON -&gt; render HTML，workflow 和 translation 都有明确前置校验；最近还补了 phase-aware workflow family 指引。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">Reference quality</strong>
+                  <span class="score-value">18/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
+                <div class="meta-copy">schema、translation prompt、workflow prompt、insights prompt 和 HTML template 都被明确点名，依赖关系清楚。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">Safety boundaries</strong>
+                  <span class="score-value">18/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
+                <div class="meta-copy">本地写出、远程 raw fetch、Mermaid-safe 渲染和假完整翻译拦截都已经进入主规则层，边界描述较完整。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">Execution readiness</strong>
+                  <span class="score-value">19/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:95%"></span></div>
+                <div class="meta-copy">脚本链路、canonical JSON 约束、few-shot 翻译示例和段落级渲染都已经落到实现，离稳定自举只差自动化 overlay 生成。</div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <div class="viewer-shell" id="mermaid-viewer" aria-hidden="true">
+      <div class="viewer">
+        <div class="viewer-head">
+          <div>
+            <p class="section-kicker">全屏查看</p>
+            <h2>执行逻辑流程图</h2>
+          </div>
+          <button class="viewer-close" type="button" data-close-viewer="mermaid-viewer">关闭</button>
+        </div>
+        <div class="viewer-body">
+          <div class="graph-shell"><div id="viewer-graph"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        const openButtons = document.querySelectorAll("[data-open-viewer]");
+        const closeButtons = document.querySelectorAll("[data-close-viewer]");
+        const closeViewer = (viewer) => {
+          viewer.classList.remove("is-open");
+          viewer.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
+        };
+        const openViewer = (viewer) => {
+          viewer.classList.add("is-open");
+          viewer.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+        };
+        openButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const viewer = document.getElementById(button.dataset.openViewer);
+            if (viewer) openViewer(viewer);
+          });
+        });
+        closeButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const viewer = document.getElementById(button.dataset.closeViewer);
+            if (viewer) closeViewer(viewer);
+          });
+        });
+        document.querySelectorAll(".viewer-shell").forEach((viewer) => {
+          viewer.addEventListener("click", (event) => {
+            if (event.target === viewer) closeViewer(viewer);
+          });
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            document.querySelectorAll(".viewer-shell.is-open").forEach((viewer) => closeViewer(viewer));
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

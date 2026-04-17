@@ -1,0 +1,1472 @@
+{
+  "summary": {
+    "title": "Skill Inspector",
+    "purpose": "Use for reviewing any unfamiliar skill source and turning it into a structured report with workflow maps, Chinese translation, safety findings, reference tracing, install detection, and publishable HTML. Trigger whenever the user asks to inspect a skill, understand what a skill does, map its workflow, translate a skill into Chinese, score skill quality, trace referenced files or links, or generate a shareable skill review page, even if they only ask for a report, an evaluation, or “what does this skill do?”",
+    "score_total": 0,
+    "risk_level": "待评估"
+  },
+  "workflow": {
+    "caption": "按 Step 子节生成的串行流程图，条件引用从对应步骤侧挂出。",
+    "nodes": [
+      {
+        "id": "input",
+        "label": "Receive task"
+      },
+      {
+        "id": "step_1",
+        "label": "Read and normalize the source"
+      },
+      {
+        "id": "step_2",
+        "label": "Produce structured JSON first"
+      },
+      {
+        "id": "step_3",
+        "label": "Fill the HTML template"
+      },
+      {
+        "id": "step_4",
+        "label": "Write outputs",
+        "kind": "terminal"
+      }
+    ],
+    "edges": [
+      {
+        "from": "input",
+        "to": "step_1"
+      },
+      {
+        "from": "step_1",
+        "to": "step_2"
+      },
+      {
+        "from": "step_2",
+        "to": "step_3"
+      },
+      {
+        "from": "step_3",
+        "to": "step_4"
+      }
+    ]
+  },
+  "translation": {
+    "mode": "full",
+    "sections": [
+      {
+        "title_zh": "",
+        "title_en": "Overview",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Analyze one skill source at a time and produce:"
+          },
+          {
+            "zh": "",
+            "en": "a structured `report.json`"
+          },
+          {
+            "zh": "",
+            "en": "a polished `report.html`"
+          },
+          {
+            "zh": "",
+            "en": "This version is agent-native. Do not rely on Python analysis scripts. Use the templates and schema in this directory and let the current agent perform the analysis."
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Success Criteria",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Complete the run when all of these outcomes are present:"
+          },
+          {
+            "zh": "",
+            "en": "`report.json` exists and matches `templates/report.schema.json`"
+          },
+          {
+            "zh": "",
+            "en": "`workflow.nodes` and `workflow.edges` express the execution logic clearly"
+          },
+          {
+            "zh": "",
+            "en": "`translation` preserves commands, paths, URLs, variables, and frontmatter keys in English"
+          },
+          {
+            "zh": "",
+            "en": "`references`, `safety`, `install`, `score`, and `suggestions` are filled with source-backed content"
+          },
+          {
+            "zh": "",
+            "en": "`report.html` reflects the final JSON without drifting from it"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Inputs",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Supported inputs:"
+          },
+          {
+            "zh": "",
+            "en": "pasted skill text"
+          },
+          {
+            "zh": "",
+            "en": "local path to a skill file"
+          },
+          {
+            "zh": "",
+            "en": "remote skill link"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Required Workflow",
+        "rows": [
+          {
+            "zh": "",
+            "en": "### Step 1: Read and normalize the source"
+          },
+          {
+            "zh": "",
+            "en": "Extract:"
+          },
+          {
+            "zh": "",
+            "en": "title"
+          },
+          {
+            "zh": "",
+            "en": "frontmatter"
+          },
+          {
+            "zh": "",
+            "en": "sections"
+          },
+          {
+            "zh": "",
+            "en": "commands"
+          },
+          {
+            "zh": "",
+            "en": "file references"
+          },
+          {
+            "zh": "",
+            "en": "URL references"
+          },
+          {
+            "zh": "",
+            "en": "workflow signals"
+          },
+          {
+            "zh": "",
+            "en": "Normalization output should stay compact:"
+          },
+          {
+            "zh": "",
+            "en": "Build a small normalized working set before drafting the final report"
+          },
+          {
+            "zh": "",
+            "en": "Keep only frontmatter, section headings, commands, file references, URL references, workflow steps, and evidence snippets"
+          },
+          {
+            "zh": "",
+            "en": "Collect line-numbered evidence only for items that appear in `references`, `safety.findings`, or other report fields that require proof"
+          },
+          {
+            "zh": "",
+            "en": "When available, use `scripts/normalize-skill.mjs` to produce the compact working set before drafting `report.json`"
+          },
+          {
+            "zh": "",
+            "en": "Prefer `normalized-source.json.reportSeeds` for deterministic fields such as `summary`, `workflow`, `references`, `translation.mode`, and `source`"
+          },
+          {
+            "zh": "",
+            "en": "Remote link handling:"
+          },
+          {
+            "zh": "",
+            "en": "When the input is a GitHub file URL in the form `https://github.com/<owner>/<repo>/blob/<branch>/<path>`, rewrite it to `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>` first"
+          },
+          {
+            "zh": "",
+            "en": "Fetch the raw URL first when the source is a GitHub file link"
+          },
+          {
+            "zh": "",
+            "en": "Continue with the raw response when it returns the actual Markdown source"
+          },
+          {
+            "zh": "",
+            "en": "Fall back to the original GitHub page only when the raw URL returns a non-success response, empty body, or HTML page content"
+          },
+          {
+            "zh": "",
+            "en": "Keep `source.primary_value` as the original user-provided GitHub URL for traceability"
+          },
+          {
+            "zh": "",
+            "en": "Do not generate the final report yet."
+          },
+          {
+            "zh": "",
+            "en": "### Step 2: Produce structured JSON first"
+          },
+          {
+            "zh": "",
+            "en": "Before generating HTML, create a `report.json` object that conforms to:"
+          },
+          {
+            "zh": "",
+            "en": "`templates/report.schema.json`"
+          },
+          {
+            "zh": "",
+            "en": "The JSON must include, at minimum:"
+          },
+          {
+            "zh": "",
+            "en": "`summary`"
+          },
+          {
+            "zh": "",
+            "en": "`workflow`"
+          },
+          {
+            "zh": "",
+            "en": "`translation`"
+          },
+          {
+            "zh": "",
+            "en": "`references`"
+          },
+          {
+            "zh": "",
+            "en": "`safety`"
+          },
+          {
+            "zh": "",
+            "en": "`install`"
+          },
+          {
+            "zh": "",
+            "en": "`score`"
+          },
+          {
+            "zh": "",
+            "en": "`suggestions`"
+          },
+          {
+            "zh": "",
+            "en": "`source`"
+          },
+          {
+            "zh": "",
+            "en": "Canonical output rules:"
+          },
+          {
+            "zh": "",
+            "en": "`report.json` must be the first valid canonical artifact"
+          },
+          {
+            "zh": "",
+            "en": "Do not create a custom intermediate report shape and convert it later"
+          },
+          {
+            "zh": "",
+            "en": "Do not invent top-level fields or alternate field shapes outside `templates/report.schema.json`"
+          },
+          {
+            "zh": "",
+            "en": "Treat `report.json` as the only source of truth before any HTML rendering"
+          },
+          {
+            "zh": "",
+            "en": "Workflow rules:"
+          },
+          {
+            "zh": "",
+            "en": "Use structured workflow data as the canonical representation"
+          },
+          {
+            "zh": "",
+            "en": "Fill `workflow.nodes` and `workflow.edges`"
+          },
+          {
+            "zh": "",
+            "en": "Keep `workflow.caption` short and focused on execution logic"
+          },
+          {
+            "zh": "",
+            "en": "Let the local renderer derive Mermaid from the workflow structure"
+          },
+          {
+            "zh": "",
+            "en": "Load `prompts/workflow-generation.md` when the workflow graph needs language-level interpretation rather than simple heuristic extraction"
+          },
+          {
+            "zh": "",
+            "en": "Do not hand-author Mermaid diagrams when structured workflow data can express the same logic"
+          },
+          {
+            "zh": "",
+            "en": "Treat `workflow.nodes[*].id` as an internal reference key, not as a Mermaid-safe node identifier"
+          },
+          {
+            "zh": "",
+            "en": "When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first so reserved words such as `style`, `class`, or other syntax-sensitive tokens cannot break the graph"
+          },
+          {
+            "zh": "",
+            "en": "Keep human-readable and source-language terminology in `workflow.nodes[*].label`, not in the rendered Mermaid node id"
+          },
+          {
+            "zh": "",
+            "en": "Translation rules for report size:"
+          },
+          {
+            "zh": "",
+            "en": "Use `translation.mode` to control verbosity"
+          },
+          {
+            "zh": "",
+            "en": "Default to `full` for non-Chinese skills"
+          },
+          {
+            "zh": "",
+            "en": "Keep `full` as the primary path when the report is meant for human review, comparison across models, or publishable bilingual output"
+          },
+          {
+            "zh": "",
+            "en": "Use `compact` only when the user explicitly asks for a shorter report or when a downstream consumer requests reduced translation volume"
+          },
+          {
+            "zh": "",
+            "en": "Use `summary` when the source skill is already primarily Chinese and the report should present a Chinese summary instead of bilingual source/translation rows"
+          },
+          {
+            "zh": "",
+            "en": "When using overlays, use `translation.coverage: full_human`"
+          },
+          {
+            "zh": "",
+            "en": "Keep the draft's English rows and let the overlay provide only Chinese `zh`"
+          },
+          {
+            "zh": "",
+            "en": "Keep `translation.sections[*]` in the standard shape: `title_zh`, `title_en`, `rows[*].zh`, and `rows[*].en`"
+          },
+          {
+            "zh": "",
+            "en": "For bilingual output, every translated row must preserve the English counterpart in `rows[*].en`"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, preserve section count, section order, and row count exactly; do not delete, merge, compress, or skip rows"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, treat missing sections, missing rows, or blank `zh` cells as report-breaking errors that must be fixed before rendering"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, treat placeholder text such as `（待补充中文翻译）`, `TODO`, or `TBD` as untranslated failure"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, treat copying the English sentence into `zh` as untranslated failure unless the row is primarily commands, paths, URLs, variables, or other preserved tokens"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, ensure each natural-language row contains meaningful Chinese content rather than only preserved English tokens"
+          },
+          {
+            "zh": "",
+            "en": "For `summary` output, fill `rows[*].zh` with Chinese summary text and leave `rows[*].en` empty when no source-language counterpart should be shown"
+          },
+          {
+            "zh": "",
+            "en": "When workflow node labels include domain terms such as `baseline`, `dry_run`, `git revert`, or product names, prefer preserving the original-language term instead of translating it mechanically"
+          },
+          {
+            "zh": "",
+            "en": "Do not skip this step."
+          },
+          {
+            "zh": "",
+            "en": "Validation rules before rendering:"
+          },
+          {
+            "zh": "",
+            "en": "Verify that `report.json` already conforms to `templates/report.schema.json`"
+          },
+          {
+            "zh": "",
+            "en": "Verify that `translation.sections[*].rows[*]` contains both `zh` and `en` when bilingual output is expected"
+          },
+          {
+            "zh": "",
+            "en": "Verify that `full` translation output preserves one-to-one section and row alignment with the draft English skeleton"
+          },
+          {
+            "zh": "",
+            "en": "Verify that `workflow.nodes` and `workflow.edges` exist before Mermaid rendering"
+          },
+          {
+            "zh": "",
+            "en": "Verify that Mermaid generation uses safe mapped node ids rather than raw workflow ids whenever structured workflow data is converted into Mermaid text"
+          },
+          {
+            "zh": "",
+            "en": "If any of these checks fail, return to JSON correction before attempting HTML rendering"
+          },
+          {
+            "zh": "",
+            "en": "Install rules:"
+          },
+          {
+            "zh": "",
+            "en": "`install` is a deterministic local-environment check, not a free-form analysis field"
+          },
+          {
+            "zh": "",
+            "en": "Detect whether the skill is installed in the current system's agent skill directories"
+          },
+          {
+            "zh": "",
+            "en": "At minimum, check `~/.codex/skills/<skill-name>` and `~/.agents/skills/<skill-name>`"
+          },
+          {
+            "zh": "",
+            "en": "Keep `install` generated by scripts rather than by overlay prose whenever possible"
+          },
+          {
+            "zh": "",
+            "en": "### Step 3: Fill the HTML template"
+          },
+          {
+            "zh": "",
+            "en": "Use:"
+          },
+          {
+            "zh": "",
+            "en": "`templates/report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Rules:"
+          },
+          {
+            "zh": "",
+            "en": "The local renderer should fill the HTML template from `report.json`"
+          },
+          {
+            "zh": "",
+            "en": "Preserve the template structure"
+          },
+          {
+            "zh": "",
+            "en": "Fill placeholders only"
+          },
+          {
+            "zh": "",
+            "en": "Keep the workflow diagram as the primary section"
+          },
+          {
+            "zh": "",
+            "en": "Keep translation as the secondary section"
+          },
+          {
+            "zh": "",
+            "en": "Keep meta sections compact"
+          },
+          {
+            "zh": "",
+            "en": "Keep the install section visible in the meta area"
+          },
+          {
+            "zh": "",
+            "en": "If embedding Mermaid or other JSON payloads inside `<script type=\"application/json\">`, do not use HTML entity escaping for the JSON body; keep it `JSON.parse`-compatible and only escape script-context hazards such as `<`, `>`, `&`, or `</script>`"
+          },
+          {
+            "zh": "",
+            "en": "Do not hand-build a standalone HTML report layout outside `templates/report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Do not override the template's visual system with custom page-level styles when placeholder filling is sufficient"
+          },
+          {
+            "zh": "",
+            "en": "Validate that `report.json` already conforms to schema before writing `report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Forbidden shortcuts:"
+          },
+          {
+            "zh": "",
+            "en": "Do not hand-write `workflow.mermaid` as the default path when structured graph data is available"
+          },
+          {
+            "zh": "",
+            "en": "Do not generate a custom `report.v2.json` or similar conversion artifact as the primary report path"
+          },
+          {
+            "zh": "",
+            "en": "Do not use custom translation field shapes such as `heading_zh`, `heading_en`, or `content_zh` in place of standard rows"
+          },
+          {
+            "zh": "",
+            "en": "Do not render HTML from any object that has not already passed the canonical `report.json` shape checks"
+          },
+          {
+            "zh": "",
+            "en": "### Step 4: Write outputs"
+          },
+          {
+            "zh": "",
+            "en": "Write:"
+          },
+          {
+            "zh": "",
+            "en": "`%当前目录%/skill-inspector/%skill-name%/report.json`"
+          },
+          {
+            "zh": "",
+            "en": "`%当前目录%/skill-inspector/%skill-name%/report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Default output directory rule:"
+          },
+          {
+            "zh": "",
+            "en": "Use `%当前目录%/skill-inspector/%skill-name%/` as the default artifact root"
+          },
+          {
+            "zh": "",
+            "en": "Keep `normalized-source.json`, `report.draft.json`, `report.overlay.template.json`, `report.json`, and `report.html` under that directory"
+          },
+          {
+            "zh": "",
+            "en": "Respect explicit output paths when the caller provides them"
+          },
+          {
+            "zh": "",
+            "en": "Optional preprocessing helper:"
+          },
+          {
+            "zh": "",
+            "en": "`node scripts/normalize-skill.mjs <input>`"
+          },
+          {
+            "zh": "",
+            "en": "Use the generated normalized JSON as the primary working context for extraction-heavy tasks"
+          },
+          {
+            "zh": "",
+            "en": "Reuse `reportSeeds` first, then spend model work on `translation.sections`, `safety`, `score`, and `suggestions`"
+          },
+          {
+            "zh": "",
+            "en": "`node scripts/build-report-draft.mjs skill-inspector/<skill-name>/normalized-source.json`"
+          },
+          {
+            "zh": "",
+            "en": "Use the generated draft report as the starting point for the final `report.json`"
+          },
+          {
+            "zh": "",
+            "en": "`node scripts/build-report-overlay-template.mjs skill-inspector/<skill-name>/report.draft.json`"
+          },
+          {
+            "zh": "",
+            "en": "Use the overlay template as the preferred model input shape for judgment-heavy fields"
+          },
+          {
+            "zh": "",
+            "en": "Let the model fill `workflow` in the overlay when heuristic workflow extraction is too rigid or inaccurate"
+          },
+          {
+            "zh": "",
+            "en": "Prefer `translation.coverage: full_human` for complete translation with lower output token cost"
+          },
+          {
+            "zh": "",
+            "en": "Let the model write a small `report.overlay.json` that focuses on judgment-heavy fields"
+          },
+          {
+            "zh": "",
+            "en": "In `full` mode, keep `report.overlay.json.translation.sections[*]` limited to `title_zh` and row-level `zh`; do not rewrite English rows in the overlay"
+          },
+          {
+            "zh": "",
+            "en": "`node scripts/finalize-report.mjs skill-inspector/<skill-name>/report.draft.json skill-inspector/<skill-name>/report.overlay.json`"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Step 1: Read and normalize the source",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Extract:"
+          },
+          {
+            "zh": "",
+            "en": "title"
+          },
+          {
+            "zh": "",
+            "en": "frontmatter"
+          },
+          {
+            "zh": "",
+            "en": "sections"
+          },
+          {
+            "zh": "",
+            "en": "commands"
+          },
+          {
+            "zh": "",
+            "en": "file references"
+          },
+          {
+            "zh": "",
+            "en": "URL references"
+          },
+          {
+            "zh": "",
+            "en": "workflow signals"
+          },
+          {
+            "zh": "",
+            "en": "Normalization output should stay compact:"
+          },
+          {
+            "zh": "",
+            "en": "Build a small normalized working set before drafting the final report"
+          },
+          {
+            "zh": "",
+            "en": "Keep only frontmatter, section headings, commands, file references, URL references, workflow steps, and evidence snippets"
+          },
+          {
+            "zh": "",
+            "en": "Collect line-numbered evidence only for items that appear in `references`, `safety.findings`, or other report fields that require proof"
+          },
+          {
+            "zh": "",
+            "en": "When available, use `scripts/normalize-skill.mjs` to produce the compact working set before drafting `report.json`"
+          },
+          {
+            "zh": "",
+            "en": "Prefer `normalized-source.json.reportSeeds` for deterministic fields such as `summary`, `workflow`, `references`, `translation.mode`, and `source`"
+          },
+          {
+            "zh": "",
+            "en": "Remote link handling:"
+          },
+          {
+            "zh": "",
+            "en": "When the input is a GitHub file URL in the form `https://github.com/<owner>/<repo>/blob/<branch>/<path>`, rewrite it to `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<path>` first"
+          },
+          {
+            "zh": "",
+            "en": "Fetch the raw URL first when the source is a GitHub file link"
+          },
+          {
+            "zh": "",
+            "en": "Continue with the raw response when it returns the actual Markdown source"
+          },
+          {
+            "zh": "",
+            "en": "Fall back to the original GitHub page only when the raw URL returns a non-success response, empty body, or HTML page content"
+          },
+          {
+            "zh": "",
+            "en": "Keep `source.primary_value` as the original user-provided GitHub URL for traceability"
+          },
+          {
+            "zh": "",
+            "en": "Do not generate the final report yet."
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Step 2: Produce structured JSON first",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Before generating HTML, create a `report.json` object that conforms to:"
+          },
+          {
+            "zh": "",
+            "en": "`templates/report.schema.json`"
+          },
+          {
+            "zh": "",
+            "en": "The JSON must include, at minimum:"
+          },
+          {
+            "zh": "",
+            "en": "`summary`"
+          },
+          {
+            "zh": "",
+            "en": "`workflow`"
+          },
+          {
+            "zh": "",
+            "en": "`translation`"
+          },
+          {
+            "zh": "",
+            "en": "`references`"
+          },
+          {
+            "zh": "",
+            "en": "`safety`"
+          },
+          {
+            "zh": "",
+            "en": "`install`"
+          },
+          {
+            "zh": "",
+            "en": "`score`"
+          },
+          {
+            "zh": "",
+            "en": "`suggestions`"
+          },
+          {
+            "zh": "",
+            "en": "`source`"
+          },
+          {
+            "zh": "",
+            "en": "Canonical output rules:"
+          },
+          {
+            "zh": "",
+            "en": "`report.json` must be the first valid canonical artifact"
+          },
+          {
+            "zh": "",
+            "en": "Do not create a custom intermediate report shape and convert it later"
+          },
+          {
+            "zh": "",
+            "en": "Do not invent top-level fields or alternate field shapes outside `templates/report.schema.json`"
+          },
+          {
+            "zh": "",
+            "en": "Treat `report.json` as the only source of truth before any HTML rendering"
+          },
+          {
+            "zh": "",
+            "en": "Workflow rules:"
+          },
+          {
+            "zh": "",
+            "en": "Use structured workflow data as the canonical representation"
+          },
+          {
+            "zh": "",
+            "en": "Fill `workflow.nodes` and `workflow.edges`"
+          },
+          {
+            "zh": "",
+            "en": "Keep `workflow.caption` short and focused on execution logic"
+          },
+          {
+            "zh": "",
+            "en": "Let the local renderer derive Mermaid from the workflow structure"
+          },
+          {
+            "zh": "",
+            "en": "Load `prompts/workflow-generation.md` when the workflow graph needs language-level interpretation rather than simple heuristic extraction"
+          },
+          {
+            "zh": "",
+            "en": "Do not hand-author Mermaid diagrams when structured workflow data can express the same logic"
+          },
+          {
+            "zh": "",
+            "en": "Treat `workflow.nodes[*].id` as an internal reference key, not as a Mermaid-safe node identifier"
+          },
+          {
+            "zh": "",
+            "en": "When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first so reserved words such as `style`, `class`, or other syntax-sensitive tokens cannot break the graph"
+          },
+          {
+            "zh": "",
+            "en": "Keep human-readable and source-language terminology in `workflow.nodes[*].label`, not in the rendered Mermaid node id"
+          },
+          {
+            "zh": "",
+            "en": "Translation rules for report size:"
+          },
+          {
+            "zh": "",
+            "en": "Use `translation.mode` to control verbosity"
+          },
+          {
+            "zh": "",
+            "en": "Default to `full` for non-Chinese skills"
+          },
+          {
+            "zh": "",
+            "en": "Keep `full` as the primary path when the report is meant for human review, comparison across models, or publishable bilingual output"
+          },
+          {
+            "zh": "",
+            "en": "Use `compact` only when the user explicitly asks for a shorter report or when a downstream consumer requests reduced translation volume"
+          },
+          {
+            "zh": "",
+            "en": "Use `summary` when the source skill is already primarily Chinese and the report should present a Chinese summary instead of bilingual source/translation rows"
+          },
+          {
+            "zh": "",
+            "en": "When using overlays, use `translation.coverage: full_human`"
+          },
+          {
+            "zh": "",
+            "en": "Keep the draft's English rows and let the overlay provide only Chinese `zh`"
+          },
+          {
+            "zh": "",
+            "en": "Keep `translation.sections[*]` in the standard shape: `title_zh`, `title_en`, `rows[*].zh`, and `rows[*].en`"
+          },
+          {
+            "zh": "",
+            "en": "For bilingual output, every translated row must preserve the English counterpart in `rows[*].en`"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, preserve section count, section order, and row count exactly; do not delete, merge, compress, or skip rows"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, treat missing sections, missing rows, or blank `zh` cells as report-breaking errors that must be fixed before rendering"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, treat placeholder text such as `（待补充中文翻译）`, `TODO`, or `TBD` as untranslated failure"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, treat copying the English sentence into `zh` as untranslated failure unless the row is primarily commands, paths, URLs, variables, or other preserved tokens"
+          },
+          {
+            "zh": "",
+            "en": "For `full` output, ensure each natural-language row contains meaningful Chinese content rather than only preserved English tokens"
+          },
+          {
+            "zh": "",
+            "en": "For `summary` output, fill `rows[*].zh` with Chinese summary text and leave `rows[*].en` empty when no source-language counterpart should be shown"
+          },
+          {
+            "zh": "",
+            "en": "When workflow node labels include domain terms such as `baseline`, `dry_run`, `git revert`, or product names, prefer preserving the original-language term instead of translating it mechanically"
+          },
+          {
+            "zh": "",
+            "en": "Do not skip this step."
+          },
+          {
+            "zh": "",
+            "en": "Validation rules before rendering:"
+          },
+          {
+            "zh": "",
+            "en": "Verify that `report.json` already conforms to `templates/report.schema.json`"
+          },
+          {
+            "zh": "",
+            "en": "Verify that `translation.sections[*].rows[*]` contains both `zh` and `en` when bilingual output is expected"
+          },
+          {
+            "zh": "",
+            "en": "Verify that `full` translation output preserves one-to-one section and row alignment with the draft English skeleton"
+          },
+          {
+            "zh": "",
+            "en": "Verify that `workflow.nodes` and `workflow.edges` exist before Mermaid rendering"
+          },
+          {
+            "zh": "",
+            "en": "Verify that Mermaid generation uses safe mapped node ids rather than raw workflow ids whenever structured workflow data is converted into Mermaid text"
+          },
+          {
+            "zh": "",
+            "en": "If any of these checks fail, return to JSON correction before attempting HTML rendering"
+          },
+          {
+            "zh": "",
+            "en": "Install rules:"
+          },
+          {
+            "zh": "",
+            "en": "`install` is a deterministic local-environment check, not a free-form analysis field"
+          },
+          {
+            "zh": "",
+            "en": "Detect whether the skill is installed in the current system's agent skill directories"
+          },
+          {
+            "zh": "",
+            "en": "At minimum, check `~/.codex/skills/<skill-name>` and `~/.agents/skills/<skill-name>`"
+          },
+          {
+            "zh": "",
+            "en": "Keep `install` generated by scripts rather than by overlay prose whenever possible"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Step 3: Fill the HTML template",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Use:"
+          },
+          {
+            "zh": "",
+            "en": "`templates/report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Rules:"
+          },
+          {
+            "zh": "",
+            "en": "The local renderer should fill the HTML template from `report.json`"
+          },
+          {
+            "zh": "",
+            "en": "Preserve the template structure"
+          },
+          {
+            "zh": "",
+            "en": "Fill placeholders only"
+          },
+          {
+            "zh": "",
+            "en": "Keep the workflow diagram as the primary section"
+          },
+          {
+            "zh": "",
+            "en": "Keep translation as the secondary section"
+          },
+          {
+            "zh": "",
+            "en": "Keep meta sections compact"
+          },
+          {
+            "zh": "",
+            "en": "Keep the install section visible in the meta area"
+          },
+          {
+            "zh": "",
+            "en": "If embedding Mermaid or other JSON payloads inside `<script type=\"application/json\">`, do not use HTML entity escaping for the JSON body; keep it `JSON.parse`-compatible and only escape script-context hazards such as `<`, `>`, `&`, or `</script>`"
+          },
+          {
+            "zh": "",
+            "en": "Do not hand-build a standalone HTML report layout outside `templates/report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Do not override the template's visual system with custom page-level styles when placeholder filling is sufficient"
+          },
+          {
+            "zh": "",
+            "en": "Validate that `report.json` already conforms to schema before writing `report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Forbidden shortcuts:"
+          },
+          {
+            "zh": "",
+            "en": "Do not hand-write `workflow.mermaid` as the default path when structured graph data is available"
+          },
+          {
+            "zh": "",
+            "en": "Do not generate a custom `report.v2.json` or similar conversion artifact as the primary report path"
+          },
+          {
+            "zh": "",
+            "en": "Do not use custom translation field shapes such as `heading_zh`, `heading_en`, or `content_zh` in place of standard rows"
+          },
+          {
+            "zh": "",
+            "en": "Do not render HTML from any object that has not already passed the canonical `report.json` shape checks"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Step 4: Write outputs",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Write:"
+          },
+          {
+            "zh": "",
+            "en": "`%当前目录%/skill-inspector/%skill-name%/report.json`"
+          },
+          {
+            "zh": "",
+            "en": "`%当前目录%/skill-inspector/%skill-name%/report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Default output directory rule:"
+          },
+          {
+            "zh": "",
+            "en": "Use `%当前目录%/skill-inspector/%skill-name%/` as the default artifact root"
+          },
+          {
+            "zh": "",
+            "en": "Keep `normalized-source.json`, `report.draft.json`, `report.overlay.template.json`, `report.json`, and `report.html` under that directory"
+          },
+          {
+            "zh": "",
+            "en": "Respect explicit output paths when the caller provides them"
+          },
+          {
+            "zh": "",
+            "en": "Optional preprocessing helper:"
+          },
+          {
+            "zh": "",
+            "en": "`node scripts/normalize-skill.mjs <input>`"
+          },
+          {
+            "zh": "",
+            "en": "Use the generated normalized JSON as the primary working context for extraction-heavy tasks"
+          },
+          {
+            "zh": "",
+            "en": "Reuse `reportSeeds` first, then spend model work on `translation.sections`, `safety`, `score`, and `suggestions`"
+          },
+          {
+            "zh": "",
+            "en": "`node scripts/build-report-draft.mjs skill-inspector/<skill-name>/normalized-source.json`"
+          },
+          {
+            "zh": "",
+            "en": "Use the generated draft report as the starting point for the final `report.json`"
+          },
+          {
+            "zh": "",
+            "en": "`node scripts/build-report-overlay-template.mjs skill-inspector/<skill-name>/report.draft.json`"
+          },
+          {
+            "zh": "",
+            "en": "Use the overlay template as the preferred model input shape for judgment-heavy fields"
+          },
+          {
+            "zh": "",
+            "en": "Let the model fill `workflow` in the overlay when heuristic workflow extraction is too rigid or inaccurate"
+          },
+          {
+            "zh": "",
+            "en": "Prefer `translation.coverage: full_human` for complete translation with lower output token cost"
+          },
+          {
+            "zh": "",
+            "en": "Let the model write a small `report.overlay.json` that focuses on judgment-heavy fields"
+          },
+          {
+            "zh": "",
+            "en": "In `full` mode, keep `report.overlay.json.translation.sections[*]` limited to `title_zh` and row-level `zh`; do not rewrite English rows in the overlay"
+          },
+          {
+            "zh": "",
+            "en": "`node scripts/finalize-report.mjs skill-inspector/<skill-name>/report.draft.json skill-inspector/<skill-name>/report.overlay.json`"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Evaluation Hints",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Use these prompts as the primary pressure tests for this skill:"
+          },
+          {
+            "zh": "",
+            "en": "Inspect a pasted skill and produce `report.json` plus `report.html`"
+          },
+          {
+            "zh": "",
+            "en": "Read a local `SKILL.md`, map its workflow, and explain what triggers it"
+          },
+          {
+            "zh": "",
+            "en": "Review a remote GitHub skill link, trace references, evaluate safety, and summarize whether the skill is worth using"
+          },
+          {
+            "zh": "",
+            "en": "Strong runs share three characteristics:"
+          },
+          {
+            "zh": "",
+            "en": "they keep `report.json` as the canonical output"
+          },
+          {
+            "zh": "",
+            "en": "they express trigger conditions and reference conditions explicitly"
+          },
+          {
+            "zh": "",
+            "en": "they keep translation concise while preserving technical identifiers exactly"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Translation Rules",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Load:"
+          },
+          {
+            "zh": "",
+            "en": "`prompts/translation.md`"
+          },
+          {
+            "zh": "",
+            "en": "Requirements:"
+          },
+          {
+            "zh": "",
+            "en": "Chinese should be concise, accurate, and readable"
+          },
+          {
+            "zh": "",
+            "en": "Product names, framework names, tool names, commands, paths, URLs, variables, and frontmatter keys stay in English"
+          },
+          {
+            "zh": "",
+            "en": "Do not summarize"
+          },
+          {
+            "zh": "",
+            "en": "Do not add explanation"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Insight Rules",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Load:"
+          },
+          {
+            "zh": "",
+            "en": "`prompts/insights.md`"
+          },
+          {
+            "zh": "",
+            "en": "Requirements:"
+          },
+          {
+            "zh": "",
+            "en": "Suggestions must be concrete and short"
+          },
+          {
+            "zh": "",
+            "en": "Focus on structure, references, safety boundaries, and maintainability"
+          },
+          {
+            "zh": "",
+            "en": "Avoid generic advice"
+          },
+          {
+            "zh": "",
+            "en": "Reference presentation rules:"
+          },
+          {
+            "zh": "",
+            "en": "`summary` is the primary appendix description for each reference"
+          },
+          {
+            "zh": "",
+            "en": "`condition` should be reflected primarily in the workflow / Mermaid layer"
+          },
+          {
+            "zh": "",
+            "en": "when a reference has a trigger condition, prefer showing it on Mermaid edges instead of repeating it in appendix prose"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Workflow Rules",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Load:"
+          },
+          {
+            "zh": "",
+            "en": "`prompts/workflow-generation.md`"
+          },
+          {
+            "zh": "",
+            "en": "Requirements:"
+          },
+          {
+            "zh": "",
+            "en": "Prefer execution structure over document structure"
+          },
+          {
+            "zh": "",
+            "en": "Use serial, branch, dependency, and terminal semantics intentionally"
+          },
+          {
+            "zh": "",
+            "en": "Keep the graph compact and readable"
+          }
+        ]
+      },
+      {
+        "title_zh": "",
+        "title_en": "Output Constraints",
+        "rows": [
+          {
+            "zh": "",
+            "en": "Generate JSON first"
+          },
+          {
+            "zh": "",
+            "en": "Treat `report.json` as the only canonical analysis output"
+          },
+          {
+            "zh": "",
+            "en": "HTML must reflect the JSON, not a separate interpretation"
+          },
+          {
+            "zh": "",
+            "en": "Do not invent sections that are unsupported by the source"
+          },
+          {
+            "zh": "",
+            "en": "Do not translate commands, code, paths, URLs, or frontmatter keys"
+          },
+          {
+            "zh": "",
+            "en": "Deduplicate repeated references while preserving the most useful evidence line"
+          },
+          {
+            "zh": "",
+            "en": "For summary fields, never emit placeholder scalars such as bare `>` or `|`; use a complete one-sentence purpose statement grounded in the source"
+          },
+          {
+            "zh": "",
+            "en": "Prefer complete bilingual translation over compact translation unless the user explicitly requests compression"
+          },
+          {
+            "zh": "",
+            "en": "Always provide at least one concrete suggestion"
+          },
+          {
+            "zh": "",
+            "en": "Always provide an `install` result, even when it is heuristic or `unknown`"
+          },
+          {
+            "zh": "",
+            "en": "When HTML includes embedded JSON for client-side rendering, verify the generated payload can be parsed successfully rather than assuming escaped text will work"
+          }
+        ]
+      }
+    ]
+  },
+  "references": [
+    {
+      "target": "report.json",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L12"
+    },
+    {
+      "target": "report.html",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L13"
+    },
+    {
+      "target": "templates/report.schema.json",
+      "kind": "file",
+      "summary": "权威规则文件，用于定义字段结构、约束条件或输出格式。",
+      "condition": "Need authoritative rules",
+      "line": "L21"
+    },
+    {
+      "target": "scripts/normalize-skill.mjs",
+      "kind": "file",
+      "summary": "脚本文件，用于执行自动化步骤或生成结果。",
+      "condition": null,
+      "line": "L54"
+    },
+    {
+      "target": "prompts/workflow-generation.md",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L98"
+    },
+    {
+      "target": "templates/report.html",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L145"
+    },
+    {
+      "target": "report.v2.json",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L164"
+    },
+    {
+      "target": "normalized-source.json",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L178"
+    },
+    {
+      "target": "report.draft.json",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L178"
+    },
+    {
+      "target": "report.overlay.template.json",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L178"
+    },
+    {
+      "target": "report.overlay.json",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L192"
+    },
+    {
+      "target": "SKILL.md",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L201"
+    },
+    {
+      "target": "prompts/translation.md",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L214"
+    },
+    {
+      "target": "prompts/insights.md",
+      "kind": "file",
+      "summary": "本地文档文件，用于补充执行时需要读取的内容。",
+      "condition": null,
+      "line": "L227"
+    }
+  ],
+  "safety": {
+    "level_code": "medium",
+    "level_label": "待评估",
+    "level_summary": "待结合来源信号中的外部访问、命令执行和依赖边界补充风险判断。",
+    "findings": [
+      {
+        "signal": "Local reference dependency",
+        "severity": "low",
+        "meaning": "待结合本地依赖文件是否必需、是否存在和是否影响执行路径补充判断。",
+        "evidence": "- a structured `report.json`"
+      }
+    ]
+  },
+  "install": {
+    "items": [
+      {
+        "platform": "Codex",
+        "status": "未安装",
+        "note": "/Users/paula/.codex/skills/skill-inspector"
+      },
+      {
+        "platform": "Agents",
+        "status": "未安装",
+        "note": "/Users/paula/.agents/skills/skill-inspector"
+      }
+    ]
+  },
+  "score": {
+    "dimensions": [
+      {
+        "name": "Trigger clarity",
+        "value": 0,
+        "rationale": "待结合 frontmatter.description、触发词和输入范围补充判断。"
+      },
+      {
+        "name": "Workflow structure",
+        "value": 0,
+        "rationale": "待结合 workflow 草图、阶段顺序和分支条件补充判断。"
+      },
+      {
+        "name": "Reference quality",
+        "value": 0,
+        "rationale": "待结合引用文件、URL 和证据行质量补充判断。"
+      },
+      {
+        "name": "Safety boundaries",
+        "value": 0,
+        "rationale": "待结合外部访问、命令执行和写入边界补充判断。"
+      },
+      {
+        "name": "Execution readiness",
+        "value": 0,
+        "rationale": "待结合来源信号和执行落地程度补充判断。"
+      }
+    ]
+  },
+  "suggestions": [],
+  "source": {
+    "primary_label": "原始路径",
+    "primary_value": "/Users/paula/Projects/skill-inspector/SKILL.md"
+  }
+}
