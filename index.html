@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Skill Inspector - Skill Inspector</title>
-    <script id="mermaid-source" type="application/json">"flowchart TD\ninput[\"Receive skill source\"]\nnormalize[\"Read and normalize source\"]\ndraft[\"Generate report.draft.json\"]\noverlay_template[\"Generate report.overlay.template.json\"]\noverlay_fill[\"Fill judgment-heavy overlay\"]\nfinalize[\"Finalize report.json\"]\nrender[\"Render report.html\"]\nwrite([\"Write outputs\"])\nschema[[\"templates/report.schema.json\"]]\ntemplate[[\"templates/report.html\"]]\nworkflow_prompt[[\"prompts/workflow-generation.md\"]]\ntranslation_prompt[[\"prompts/translation.md\"]]\ninsights_prompt[[\"prompts/insights.md\"]]\ninput --\u003e normalize\nnormalize --\u003e draft\ndraft --\u003e overlay_template\noverlay_template --\u003e overlay_fill\noverlay_fill --\u003e finalize\nfinalize --\u003e render\nrender --\u003e write\nschema --\u003e|Validate required shape| finalize\ntemplate --\u003e|Fill template| render\nworkflow_prompt --\u003e|Interpret workflow graph| overlay_fill\ntranslation_prompt --\u003e|Write translation| overlay_fill\ninsights_prompt --\u003e|Write safety and score| overlay_fill"</script>
+    <script id="mermaid-source" type="application/json">"flowchart TD\nn_input[\"Receive skill source\"]\nn_normalize[\"Normalize source \u0026 evidence\"]\nn_workflow_graph[\"Derive workflow graph\"]\nn_translation_review[\"Translate \u0026 assess report\"]\nn_report_json[\"Build canonical report.json\"]\nn_render[\"Render report.html\"]\nn_write([\"Write report artifacts\"])\nn_schema[[\"templates/report.schema.json\"]]\nn_workflow_prompt[[\"prompts/workflow-generation.md\"]]\nn_translation_prompt[[\"prompts/translation.md\"]]\nn_insights_prompt[[\"prompts/insights.md\"]]\nn_html_template[[\"templates/report.html\"]]\nn_input --\u003e n_normalize\nn_normalize --\u003e n_workflow_graph\nn_normalize --\u003e n_translation_review\nn_workflow_graph --\u003e n_report_json\nn_translation_review --\u003e n_report_json\nn_report_json --\u003e n_render\nn_render --\u003e n_write\nn_schema --\u003e|Required| n_report_json\nn_workflow_prompt --\u003e|Guides graph mode| n_workflow_graph\nn_translation_prompt --\u003e|Guides translation| n_translation_review\nn_insights_prompt --\u003e|Guides score \u0026 suggestions| n_translation_review\nn_html_template --\u003e|Required| n_render"</script>
     <script type="module">
       import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 
@@ -318,6 +318,14 @@
         padding: 10px 0;
         border-bottom: 1px dashed rgba(77, 101, 124, 0.12);
       }
+      .translation-block-row--heading {
+        padding-top: 2px;
+      }
+      .translation-block-row--paragraph,
+      .translation-block-row--list {
+        padding-top: 8px;
+        padding-bottom: 12px;
+      }
       .translation-block-row:first-child {
         padding-top: 0;
       }
@@ -336,6 +344,20 @@
         word-break: break-word;
         color: #627485;
         font-size: 12.5px;
+        line-height: 1.75;
+      }
+      .translation-paragraph {
+        margin: 0;
+        white-space: normal;
+      }
+      .translation-list {
+        margin: 0;
+        padding-left: 20px;
+        display: grid;
+        gap: 6px;
+      }
+      .translation-list-item {
+        color: inherit;
         line-height: 1.75;
       }
       .meta-card {
@@ -455,30 +477,31 @@
         overflow-wrap: anywhere;
       }
       .reference-tags {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 0;
+        display: block;
+        min-width: 0;
         margin-top: 7px;
+        font-size: 10px;
+        line-height: 1.45;
+        color: #718396;
       }
       .reference-tag {
-        display: inline-flex;
-        align-items: flex-start;
+        display: inline;
         padding: 0;
         border-radius: 0;
         border: 0;
         background: transparent;
-        color: #718396;
-        font-size: 10px;
-        line-height: 1.35;
+        color: inherit;
+        font-size: inherit;
+        line-height: inherit;
         letter-spacing: 0.04em;
-        text-transform: uppercase;
+        text-transform: none;
         white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-word;
       }
       .reference-tag + .reference-tag::before {
         content: "|";
-        display: inline-block;
+        display: inline;
         margin: 0 6px;
         color: #98a6b4;
       }
@@ -607,21 +630,21 @@
         <div class="hero-copy">
           <p class="eyebrow">Skill Inspector</p>
           <h1>Skill Inspector</h1>
-          <p class="summary">Use when a skill link, skill file, or pasted skill content needs structural analysis, Chinese translation, scoring, safety review, reference tracing, or installation detection</p>
-          <p class="source-inline"><strong>Source:</strong> SKILL.md</p>
+          <p class="summary">用于分析单个 skill 来源，并生成结构化 `report.json` 与可阅读的 `report.html`；当前版本强化了 phase-aware workflow 建图、完整翻译反作弊校验和段落级翻译呈现。</p>
+          <p class="source-inline"><strong>Source:</strong> <a href="https://github.com/0065paula/skill-inspector/blob/main/SKILL.md" target="_blank" rel="noreferrer">https://github.com/0065paula/skill-inspector/blob/main/SKILL.md</a></p>
         </div>
         <dl class="hero-metrics">
           <div class="hero-stat">
             <dt>评分</dt>
-            <dd>89/100</dd>
+            <dd>93/100</dd>
           </div>
           <div class="hero-stat">
             <dt>风险</dt>
-            <dd>中风险</dd>
+            <dd>低风险</dd>
           </div>
           <div class="hero-stat">
             <dt>引用</dt>
-            <dd>9</dd>
+            <dd>6</dd>
           </div>
           <div class="hero-stat">
             <dt>翻译模式</dt>
@@ -649,7 +672,7 @@
             <div>
                 <h2>执行逻辑流程图</h2>
               <!-- Trigger conditions for references should be expressed on Mermaid edges whenever available. -->
-              <p class="muted">当前 skill 的主路径由归一化、草稿生成、overlay 补充、最终合并和 HTML 渲染组成。schema、template 与 prompts 分别约束结构、展示和判断型内容。</p>
+              <p class="muted">主路径先归一化来源，再分别完成 workflow 建模与翻译/洞察补全，最后收敛到 canonical `report.json` 并渲染 `report.html`。结构化 workflow 是主干，schema、prompt 和模板作为侧挂依赖。</p>
             </div>
             <button class="viewer-trigger" type="button" data-open-viewer="mermaid-viewer">全屏查看</button>
           </div>
@@ -673,12 +696,10 @@
               </div>
               <div class="translation-compare">
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-text">这份 skill 用来分析单个 skill 来源，并产出结构化 `report.json` 与可读 `report.html`。</div></div>
-              <div class="translation-block-row"><div class="translation-text">当前版本采用 agent-native 流程，判断型内容通过 overlay 补充，结构和展示由仓库内模板与 schema 约束。</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">一次分析一个 skill 来源，并产出结构化的 `report.json` 与整理好的 `report.html`。 这是一个 agent-native 版本，明确要求使用当前目录里的模板、schema 与 prompt，而不是依赖 Python 分析脚本。</p></div>
                 </div>
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-original">Analyze one skill source at a time and produce a structured `report.json` and a polished `report.html`.</div></div>
-              <div class="translation-block-row"><div class="translation-original">This version is agent-native. Use the templates and schema in this directory and let the current agent perform the analysis.</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">Analyze one skill source at a time and produce: This version is agent-native. Do not rely on Python analysis scripts. Use the templates and schema in this directory and let the current agent perform the analysis.</p></div>
                 </div>
               </div>
             </article>
@@ -686,16 +707,16 @@
             <article class="translation-block">
               <div class="panel-head">
                 <div>
-                  <h3>输入</h3>
-                  <p class="muted">Inputs</p>
+                  <h3>结构化输出优先</h3>
+                  <p class="muted">Structured JSON First</p>
                 </div>
               </div>
               <div class="translation-compare">
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-text">支持三类输入：贴入的 skill 全文、本地 skill 文件路径、远程 skill 链接。</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">在生成 HTML 之前，必须先创建符合 `templates/report.schema.json` 的 `report.json`，并把它当成唯一 canonical artifact。 这份 skill 现在明确禁止生成自定义中间 report shape 或手写 Mermaid 作为主路径，所有渲染都应从标准 JSON 出发。</p></div>
                 </div>
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-original">Supported inputs: pasted skill text, local path to a skill file, and remote skill link.</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">Before generating HTML, create a `report.json` object that conforms to: `templates/report.schema.json`. `report.json` must be the first valid canonical artifact. Do not create a custom intermediate report shape and convert it later.</p></div>
                 </div>
               </div>
             </article>
@@ -703,22 +724,16 @@
             <article class="translation-block">
               <div class="panel-head">
                 <div>
-                  <h3>主工作流</h3>
-                  <p class="muted">Required Workflow</p>
+                  <h3>翻译质量控制</h3>
+                  <p class="muted">Translation Quality Controls</p>
                 </div>
               </div>
               <div class="translation-compare">
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-text">第一步读取并归一化来源，提取 title、frontmatter、sections、commands、references 和 workflow signals，并生成紧凑工作集与 `reportSeeds`。</div></div>
-              <div class="translation-block-row"><div class="translation-text">第二步先生成符合 `templates/report.schema.json` 的 `report.json` 结构，workflow 以 `nodes` 和 `edges` 为标准表示，`install` 作为确定性本机目录检查字段。</div></div>
-              <div class="translation-block-row"><div class="translation-text">第三步用 `templates/report.html` 渲染 HTML，workflow 是主区块，translation 是次区块，meta 区块保持紧凑。</div></div>
-              <div class="translation-block-row"><div class="translation-text">第四步写出 `out/report.json` 与 `out/report.html`，可选链路还包括 `normalize-skill`、`build-report-draft`、`build-report-overlay-template`、`finalize-report` 四段预处理。</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">非中文 skill 默认走 `full`，并要求 section 与 row 与英文骨架一一对应；缺行、空 `zh`、占位文本和整句英文复制都属于失败。 `prompts/translation.md` 还补了正反样例，覆盖标题、纯 prose、路径、命令、变量以及典型作弊样本，用来对齐模型风格而不是只靠 blacklist。</p></div>
                 </div>
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-original">Step 1 reads and normalizes the source, extracting title, frontmatter, sections, commands, references, and workflow signals into a compact working set with `reportSeeds`.</div></div>
-              <div class="translation-block-row"><div class="translation-original">Step 2 builds a schema-shaped `report.json`, treats workflow graph data as the canonical representation, and keeps `install` as a deterministic local-directory check.</div></div>
-              <div class="translation-block-row"><div class="translation-original">Step 3 fills `templates/report.html`, keeping workflow as the primary section, translation as the secondary section, and meta sections compact.</div></div>
-              <div class="translation-block-row"><div class="translation-original">Step 4 writes `out/report.json` and `out/report.html`, with optional helper stages for normalization, draft generation, overlay templating, and finalization.</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">Default to `full` for non-Chinese skills. For `full` output, preserve section count, section order, and row count exactly; do not delete, merge, compress, or skip rows. Load: `prompts/translation.md`.</p></div>
                 </div>
               </div>
             </article>
@@ -726,18 +741,16 @@
             <article class="translation-block">
               <div class="panel-head">
                 <div>
-                  <h3>翻译与洞察规则</h3>
-                  <p class="muted">Translation and Insight Rules</p>
+                  <h3>Workflow 建图策略</h3>
+                  <p class="muted">Workflow Guidance</p>
                 </div>
               </div>
               <div class="translation-compare">
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-text">翻译层加载 `prompts/translation.md`，中文要求简洁、准确、可读，commands、paths、URLs、variables 和 frontmatter keys 保持英文。</div></div>
-              <div class="translation-block-row"><div class="translation-text">洞察层加载 `prompts/insights.md`，重点产出简短具体的 suggestions，并围绕结构、引用、安全边界和可维护性给出判断。</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">workflow 现在强调结构化 `nodes` / `edges`，并要求渲染器从这些结构推导 Mermaid，而不是直接手写图文本。 `prompts/workflow-generation.md` 新增了 `phase_serial` 与 `phase_with_internal_steps` 等模式指引，目的不是更强约束，而是让模型先识别流程类型，再选择合适图法。</p></div>
                 </div>
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-original">Translation loads `prompts/translation.md`, keeps Chinese concise and readable, and preserves commands, paths, URLs, variables, and frontmatter keys in English.</div></div>
-              <div class="translation-block-row"><div class="translation-original">Insights load `prompts/insights.md`, generate short concrete suggestions, and evaluate structure, references, safety boundaries, and maintainability.</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">Use structured workflow data as the canonical representation. Let the local renderer derive Mermaid from the workflow structure. Load `prompts/workflow-generation.md` when the workflow graph needs language-level interpretation rather than simple heuristic extraction.</p></div>
                 </div>
               </div>
             </article>
@@ -745,20 +758,16 @@
             <article class="translation-block">
               <div class="panel-head">
                 <div>
-                  <h3>输出契约</h3>
-                  <p class="muted">Output Constraints</p>
+                  <h3>渲染与阅读体验</h3>
+                  <p class="muted">Rendering and Reading Experience</p>
                 </div>
               </div>
               <div class="translation-compare">
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-text">`report.json` 是唯一规范分析输出，HTML 必须忠实反映 JSON。</div></div>
-              <div class="translation-block-row"><div class="translation-text">输出层要求引用去重、证据精简、至少一条具体建议，以及始终提供 `install` 结果。</div></div>
-              <div class="translation-block-row"><div class="translation-text">内嵌 `&lt;script type=&quot;application/json&quot;&gt;` 的 JSON 需要保持 `JSON.parse` 兼容，并处理脚本上下文转义。</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">HTML 只能从标准 `report.json` 渲染，且在 Mermaid 前会把 workflow id 映射成安全节点 id，避免 `style`、`class` 等保留字破坏图。 渲染层现在保留逐行真源做校验，同时把连续 prose 行聚合成段落、把列表行聚合成列表块，让双语阅读更接近真实文档。</p></div>
                 </div>
                 <div class="translation-col">
-              <div class="translation-block-row"><div class="translation-original">`report.json` is the canonical analysis output and HTML must reflect it faithfully.</div></div>
-              <div class="translation-block-row"><div class="translation-original">The output contract requires deduplicated references, compact evidence, at least one concrete suggestion, and an `install` result in every run.</div></div>
-              <div class="translation-block-row"><div class="translation-original">Embedded `&lt;script type=&quot;application/json&quot;&gt;` payloads must stay `JSON.parse` compatible and escape script-context hazards correctly.</div></div>
+              <div class="translation-block-row translation-block-row--paragraph"><p class="translation-paragraph">When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first. The local renderer should fill the HTML template from `report.json`.</p></div>
                 </div>
               </div>
             </article>
@@ -776,91 +785,61 @@
                  Keep trigger conditions in Mermaid edges rather than repeating them here. -->
             <div class="meta-stack">
             <div class="meta-row">
-              <strong>scripts/normalize-skill.mjs</strong>
-              <div class="meta-copy">归一化脚本，负责提取结构信号并生成 `reportSeeds`。</div>
-              <div class="reference-tags">
-                <span class="reference-tag">file</span>
-                <span class="reference-tag">L44</span>
-                
-              </div>
-            </div>
-
-            <div class="meta-row">
               <strong>templates/report.schema.json</strong>
-              <div class="meta-copy">最终 `report.json` 的结构契约，约束必填字段和 workflow / translation / safety 等对象形状。</div>
+              <div class="meta-copy">定义 canonical `report.json` 的字段结构，是先 JSON 后 HTML 这条主路径的硬约束来源。</div>
               <div class="reference-tags">
                 <span class="reference-tag">file</span>
-                <span class="reference-tag">L61</span>
-                <span class="reference-tag reference-tag--condition">需要输出结构约束时加载</span>
+                <span class="reference-tag">L21</span>
+                <span class="reference-tag reference-tag--condition">Need authoritative rules</span>
               </div>
             </div>
 
             <div class="meta-row">
               <strong>prompts/workflow-generation.md</strong>
-              <div class="meta-copy">workflow 需要语言级语义判断时使用的提示文件。</div>
+              <div class="meta-copy">定义 workflow family、phase-aware 正反例与主干/依赖区分原则，决定流程图是否贴近原文执行结构。</div>
               <div class="reference-tags">
                 <span class="reference-tag">file</span>
-                <span class="reference-tag">L81</span>
-                <span class="reference-tag reference-tag--condition">需要复杂流程图语义时加载</span>
-              </div>
-            </div>
-
-            <div class="meta-row">
-              <strong>templates/report.html</strong>
-              <div class="meta-copy">报告页面模板，定义 HTML 展示骨架和区块布局。</div>
-              <div class="reference-tags">
-                <span class="reference-tag">file</span>
-                <span class="reference-tag">L106</span>
-                
-              </div>
-            </div>
-
-            <div class="meta-row">
-              <strong>out/report.json</strong>
-              <div class="meta-copy">最终结构化分析输出。</div>
-              <div class="reference-tags">
-                <span class="reference-tag">file</span>
-                <span class="reference-tag">L123</span>
-                
-              </div>
-            </div>
-
-            <div class="meta-row">
-              <strong>out/report.html</strong>
-              <div class="meta-copy">最终可读报告输出。</div>
-              <div class="reference-tags">
-                <span class="reference-tag">file</span>
-                <span class="reference-tag">L124</span>
-                
-              </div>
-            </div>
-
-            <div class="meta-row">
-              <strong>report.overlay.json</strong>
-              <div class="meta-copy">判断型补丁文件，集中承载 workflow、translation、safety、score 与 suggestions。</div>
-              <div class="reference-tags">
-                <span class="reference-tag">file</span>
-                <span class="reference-tag">L137</span>
+                <span class="reference-tag">L98</span>
                 
               </div>
             </div>
 
             <div class="meta-row">
               <strong>prompts/translation.md</strong>
-              <div class="meta-copy">中文翻译规则文件，约束术语保留和表达风格。</div>
+              <div class="meta-copy">约束完整翻译的保留项、禁止项与 few-shot 样本，是翻译真实性和风格对齐的关键依据。</div>
               <div class="reference-tags">
                 <span class="reference-tag">file</span>
-                <span class="reference-tag">L144</span>
+                <span class="reference-tag">L214</span>
                 
               </div>
             </div>
 
             <div class="meta-row">
               <strong>prompts/insights.md</strong>
-              <div class="meta-copy">评分、建议与安全表达规则文件。</div>
+              <div class="meta-copy">控制 suggestions、score rationale 等判断型内容的粒度和风格，避免泛泛而谈。</div>
               <div class="reference-tags">
                 <span class="reference-tag">file</span>
-                <span class="reference-tag">L157</span>
+                <span class="reference-tag">L227</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>templates/report.html</strong>
+              <div class="meta-copy">承接最终 HTML 渲染；当前版本还负责把连续 prose 行合并成段落、把列表项合并成 list block。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L145</span>
+                
+              </div>
+            </div>
+
+            <div class="meta-row">
+              <strong>scripts/finalize-report.mjs</strong>
+              <div class="meta-copy">负责 draft 与 overlay 的合并和最终 shape 校验，也是拦截假完整翻译与 fallback 摘要的最后一道关口。</div>
+              <div class="reference-tags">
+                <span class="reference-tag">file</span>
+                <span class="reference-tag">L194</span>
                 
               </div>
             </div>
@@ -873,36 +852,36 @@
                  1. a safety summary block for the current risk level
                  2. one row per concrete finding below it -->
             
-            <div class="safety-summary tone-medium">
-              <strong>中风险</strong>
-              <div class="meta-copy">这份 skill 的执行面集中在本地文件读取、远程 skill 链接抓取、JSON 合并校验和本地 HTML 渲染。整体边界清楚，风险主要来自远程内容抓取和多段脚本写出链路。</div>
+            <div class="safety-summary tone-low">
+              <strong>低风险</strong>
+              <div class="meta-copy">这份 skill 的主风险集中在本地文件读写、远程 raw 链接读取和客户端 HTML/JSON 渲染，而不是危险系统操作。当前版本已经把 canonical JSON、Mermaid-safe id 和假完整翻译拦截写进主流程，整体风险较低。</div>
             </div>
             <div class="meta-stack">
+              <div class="meta-row">
+                <div class="safety-finding-title">
+                  <strong>local-file-write</strong>
+                  <span class="safety-severity">low</span>
+                </div>
+                <div class="meta-copy">默认会在本地输出 `normalized-source.json`、`report.draft.json`、`report.overlay.template.json`、`report.json` 和 `report.html`，副作用局限在报告产物目录。</div>
+                <div class="muted">证据: Write: `%当前目录%/skill-inspector/%skill-name%/report.json` and `%当前目录%/skill-inspector/%skill-name%/report.html`.</div>
+              </div>
+
               <div class="meta-row">
                 <div class="safety-finding-title">
                   <strong>remote-source-fetch</strong>
                   <span class="safety-severity">medium</span>
                 </div>
-                <div class="meta-copy">来源支持远程 skill 链接，并对 GitHub raw 与页面回退做抓取处理，执行方需要保证来源可信和读取范围可控。</div>
-                <div class="muted">证据: L49-L53: GitHub raw rewrite and fallback rules</div>
+                <div class="meta-copy">支持远程 skill 链接，并会先尝试 raw URL，再回退到原 GitHub 页面；风险主要在外部来源可信度和网络可达性。</div>
+                <div class="muted">证据: Fetch the raw URL first when the source is a GitHub file link. Fall back to the original GitHub page only when the raw URL returns a non-success response, empty body, or HTML page content.</div>
               </div>
 
               <div class="meta-row">
                 <div class="safety-finding-title">
-                  <strong>local-output-pipeline</strong>
-                  <span class="safety-severity">medium</span>
+                  <strong>html-json-rendering</strong>
+                  <span class="safety-severity">low</span>
                 </div>
-                <div class="meta-copy">可选预处理链路会生成 `normalized-source.json`、`report.draft.json`、`report.overlay.template.json`、`report.json` 和 `report.html`，属于受控的本地写出流程。</div>
-                <div class="muted">证据: L123-L137: staged output and helper commands are explicitly listed</div>
-              </div>
-
-              <div class="meta-row">
-                <div class="safety-finding-title">
-                  <strong>embedded-json-rendering</strong>
-                  <span class="safety-severity">medium</span>
-                </div>
-                <div class="meta-copy">HTML 渲染明确涉及 `&lt;script type=&quot;application/json&quot;&gt;` 内嵌 JSON，因此脚本上下文转义和 JSON 解析一致性是关键边界。</div>
-                <div class="muted">证据: L117: JSON.parse-compatible script embedding rule</div>
+                <div class="meta-copy">页面会内嵌 Mermaid 和 JSON payload，但当前规则已经要求 JSON.parse-compatible 嵌入与 Mermaid-safe id 映射，降低了脚本上下文和保留字冲突风险。</div>
+                <div class="muted">证据: When rendering Mermaid, never pass raw workflow ids through directly; always map them to Mermaid-safe ids first.</div>
               </div>
             </div>
           </section>
@@ -911,21 +890,21 @@
             <h2>优化建议</h2>
             <div class="meta-stack">
             <div class="meta-row">
-              <strong>收紧结果文件级引用抽取</strong>
-              <div class="meta-copy">把 `report.json` 和 `report.html` 这类结果文件名与真正依赖引用分层处理，能让 references 更聚焦。</div>
+              <strong>为 self-report 固定 canonical fixture</strong>
+              <div class="meta-copy">把当前 `SKILL.md` 的自分析报告做成受版本控制的固定 fixture，并把 gh-pages 发布直接绑定到这份 canonical 产物，减少线上报告滞后。</div>
+              <div class="muted">优先级: high</div>
+            </div>
+
+            <div class="meta-row">
+              <strong>给 workflow 引入 phase 容器渲染</strong>
+              <div class="meta-copy">当前 prompt 已能区分 `phase_serial` 与 `phase_with_internal_steps`，下一步值得在渲染层提供 phase 容器或泳道，让 phase 主干与内部 step 的层级更直观。</div>
               <div class="muted">优先级: medium</div>
             </div>
 
             <div class="meta-row">
-              <strong>补一份完整自检 overlay 示例</strong>
-              <div class="meta-copy">增加一份覆盖 workflow、translation、safety、score 和 suggestions 的真实 overlay 示例，能加快首次接入。</div>
+              <strong>把段落级展示升级成显式 block 数据</strong>
+              <div class="meta-copy">现在段落聚合发生在 render 阶段。后续可以考虑给 translation 增加 block-level presentation metadata，让 JSON 本身也承载阅读层语义。</div>
               <div class="muted">优先级: medium</div>
-            </div>
-
-            <div class="meta-row">
-              <strong>把主流程与可选 helper 流程分成两个图区</strong>
-              <div class="meta-copy">当前文档同时描述主路径和 helper 链路，分成两个独立图区会让阅读路径更稳定。</div>
-              <div class="muted">优先级: low</div>
             </div>
             </div>
           </section>
@@ -939,7 +918,7 @@
             <div class="status-row">
               <div>
                 <strong>Codex</strong>
-                <div class="muted">/Users/paulameng/.codex/skills/skill-inspector</div>
+                <div class="muted">/Users/paula/.codex/skills/skill-inspector</div>
               </div>
               <span>未安装</span>
             </div>
@@ -947,7 +926,7 @@
             <div class="status-row">
               <div>
                 <strong>Agents</strong>
-                <div class="muted">/Users/paulameng/.agents/skills/skill-inspector</div>
+                <div class="muted">/Users/paula/.agents/skills/skill-inspector</div>
               </div>
               <span>未安装</span>
             </div>
@@ -960,54 +939,54 @@
                  1. one summary block for the overall score impression
                  2. itemized scoring rows below with user-friendly Chinese labels and semantic color differences -->
             
-            <div class="score-summary score-summary--strong">
-              <strong>89/100</strong>
-              <div class="meta-copy">整体质量较强，适合在补齐少量边界说明后稳定使用。</div>
+            <div class="score-summary score-summary--excellent">
+              <strong>93/100</strong>
+              <div class="meta-copy">整体质量很强，属于可直接投入使用的高约束技能。</div>
             </div>
             <div class="meta-stack">
               <div class="score-row">
                 <div class="score-row-head">
-                  <strong class="score-label">trigger_clarity</strong>
-                  <span class="score-value">18/20</span>
-                </div>
-                <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
-                <div class="meta-copy">frontmatter description 直接写清了适用输入和任务类型，触发边界明确。</div>
-              </div>
-
-              <div class="score-row">
-                <div class="score-row-head">
-                  <strong class="score-label">workflow_clarity</strong>
-                  <span class="score-value">18/20</span>
-                </div>
-                <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
-                <div class="meta-copy">主路径覆盖归一化、JSON 生成、HTML 渲染和输出写入，辅助链路也给了明确命令。</div>
-              </div>
-
-              <div class="score-row">
-                <div class="score-row-head">
-                  <strong class="score-label">output_contract</strong>
+                  <strong class="score-label">Trigger clarity</strong>
                   <span class="score-value">19/20</span>
                 </div>
                 <div class="score-bar score-summary--excellent"><span style="width:95%"></span></div>
-                <div class="meta-copy">`report.json` 作为唯一真源的约束清楚，HTML 与 JSON 的关系表达稳定。</div>
+                <div class="meta-copy">frontmatter description 很完整，触发场景覆盖 inspect、workflow、translation、safety、score、shareable report 等典型需求。</div>
               </div>
 
               <div class="score-row">
                 <div class="score-row-head">
-                  <strong class="score-label">reference_hygiene</strong>
-                  <span class="score-value">16/20</span>
+                  <strong class="score-label">Workflow structure</strong>
+                  <span class="score-value">19/20</span>
                 </div>
-                <div class="score-bar score-summary--strong"><span style="width:80%"></span></div>
-                <div class="meta-copy">关键模板、schema、prompts 和输出文件都有引用。当前来源文本里也出现了结果文件名级别的轻量引用信号。</div>
+                <div class="score-bar score-summary--excellent"><span style="width:95%"></span></div>
+                <div class="meta-copy">主流程坚持 normalize -&gt; canonical JSON -&gt; render HTML，workflow 和 translation 都有明确前置校验；最近还补了 phase-aware workflow family 指引。</div>
               </div>
 
               <div class="score-row">
                 <div class="score-row-head">
-                  <strong class="score-label">maintainability</strong>
+                  <strong class="score-label">Reference quality</strong>
                   <span class="score-value">18/20</span>
                 </div>
                 <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
-                <div class="meta-copy">脚本链路拆分明确，draft、overlay template 和 finalize 的职责边界清晰。</div>
+                <div class="meta-copy">schema、translation prompt、workflow prompt、insights prompt 和 HTML template 都被明确点名，依赖关系清楚。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">Safety boundaries</strong>
+                  <span class="score-value">18/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:90%"></span></div>
+                <div class="meta-copy">本地写出、远程 raw fetch、Mermaid-safe 渲染和假完整翻译拦截都已经进入主规则层，边界描述较完整。</div>
+              </div>
+
+              <div class="score-row">
+                <div class="score-row-head">
+                  <strong class="score-label">Execution readiness</strong>
+                  <span class="score-value">19/20</span>
+                </div>
+                <div class="score-bar score-summary--excellent"><span style="width:95%"></span></div>
+                <div class="meta-copy">脚本链路、canonical JSON 约束、few-shot 翻译示例和段落级渲染都已经落到实现，离稳定自举只差自动化 overlay 生成。</div>
               </div>
             </div>
           </section>
